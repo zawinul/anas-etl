@@ -3,7 +3,6 @@ package it.eng.anas.threads;
 import java.util.List;
 
 import it.eng.anas.Utils;
-import it.eng.anas.main.MainGetQueues.QDesc;
 
 public class EsempioJobFactory extends JobFactory {
 	

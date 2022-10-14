@@ -32,6 +32,7 @@ RemoteSystemsTempFiles
 *.xml~
 *.t~
 
+/bin
 /target
 /generated-files
 /nbactions.xml

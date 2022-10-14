@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.eng.anas.Log;
-import it.eng.anas.QueueManager;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.DbJobManager;
@@ -26,7 +25,7 @@ public class DBConsumeJob<T extends Model> extends Job {
 	
 	
 	public void log(String msg) {
-		System.out.println(position+":"+tag+":"+msg);
+		Log.main.log(position+":"+tag+":"+msg);
 	}
 
 	public DBConsumeJob(String tag, String queueName, String type, int priority, Class<? extends Model> tclass) {
