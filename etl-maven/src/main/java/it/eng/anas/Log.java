@@ -30,8 +30,10 @@ public class Log {
 		System.out.println(logtag+":W:"+x);
 	}
 
-	public void warn(String x, Exception e) {
-		System.out.println(logtag+":W:"+x);
+
+	public void log(Exception e) {
+		System.out.println(logtag+":Exception:"+e.getMessage());
 		e.printStackTrace();
 	}
+
 }

@@ -3,15 +3,13 @@ package it.eng.anas.threads;
 import java.util.ArrayList;
 import java.util.List;
 
-import it.eng.anas.WebMonitor;
-import it.eng.anas.main.MainGetQueues.QDesc;
+import it.eng.anas.ScheduleHelper;
 
 public class ThreadManager {
 	public int NMAXTHREADS = 200;
 	public List<Job> threads = new ArrayList<Job>();
 	public JobFactory factory;
-	public int curNumberOfThreads = 0;
-	public List<QDesc> queues;
+	public int forcedNumberOfThreads = 0;
 	public ThreadManager(JobFactory factory) {
 		this.factory = factory;
 	}
@@ -20,7 +18,7 @@ public class ThreadManager {
 	
 	public void setNumberOfThreads(int n) {
 		log("setNumberOfThreads "+n);
-		curNumberOfThreads = n<0 ? 0 : (n>NMAXTHREADS ? NMAXTHREADS : n);
+		forcedNumberOfThreads = n>NMAXTHREADS ? NMAXTHREADS : n;
 		updateNumOfThreads();
 	}
 	
@@ -59,33 +57,38 @@ public class ThreadManager {
 
 
 	public void updateNumOfThreads() {
-		
-		int cur = threads.size();
-		if (cur<curNumberOfThreads) {
-			try {
-				queues = new WebMonitor().getQueues();
-				for(int i=cur; i<curNumberOfThreads; i++) {
-					log("curNumberOfThreads="+curNumberOfThreads+" c="+cur+ " add one");
+		try {
+			int nt = forcedNumberOfThreads;
+			if (nt<0)
+				nt = ScheduleHelper.getNumOfThread();
+	
+			int cur = threads.size();
+			if (cur<nt) {
+				for(int i=cur; i<nt; i++) {
+					log("nt="+nt+" c="+cur+ " add one");
 					addOne();
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
 			}
+			
+			for(int i=nt; i<cur; i++) {
+				log("nt="+nt+" c="+cur+ " delete one");
+				deleteOne();
+			}
+			for(int i=0; i<threads.size(); i++)
+				threads.get(i).position = i;
+
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
 		}
 		
-		for(int i=curNumberOfThreads; i<cur; i++) {
-			log("curNumberOfThreads="+curNumberOfThreads+" c="+cur+ " delete one");
-			deleteOne();
-		}
-		for(int i=0; i<threads.size(); i++)
-			threads.get(i).position = i;
 
 	}
 	
 	public void killAll(boolean andWait) {
 		List<Job> temp = new ArrayList<Job>(threads);
 		threads.clear();
-		curNumberOfThreads = 0;
+		forcedNumberOfThreads = 0;
 		
 		for(Job t: temp)
 			t.exitRequest = true;

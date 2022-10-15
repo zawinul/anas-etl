@@ -1,14 +1,8 @@
 package it.eng.anas.main;
 
-import java.util.List;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
-import it.eng.anas.threads.DBConsumeThreadFactory;
-import it.eng.anas.threads.EsempioJobFactory;
-import it.eng.anas.threads.JobFactory;
+import it.eng.anas.model.Config;
 import it.eng.anas.threads.ThreadManager;
 
 public class WebServer {
@@ -21,7 +15,8 @@ public class WebServer {
 	public ThreadManager manager;
 	public Runnable onKill;
 	public void start() {
-		spark.Spark.port(5151);
+		Config c = Utils.getConfig();
+		spark.Spark.port(c.webServerPort);
 		spark.Spark.get("/hello", (req, res) -> {
 			Log.web.log(req.url().toString());
 			

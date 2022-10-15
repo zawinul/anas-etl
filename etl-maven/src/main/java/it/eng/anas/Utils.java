@@ -1,12 +1,17 @@
 package it.eng.anas;
 
+import java.io.FileReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import org.apache.commons.io.IOUtils;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
+import it.eng.anas.model.Config;
 
 public class Utils {
 	public static String rndString(int len) {
@@ -78,8 +83,37 @@ public class Utils {
 			return null;
 		}
 	}
-
-	public static void main(String args[]) {
-		System.out.println(date2String(new Date()).length());
+	
+	private static Config cfg;
+	private static String jsonCfg;
+	private static long cfgExpire = 0;
+	public static Config getConfig() {
+		return (cfg!=null) ? cfg : refreshConfig();
+	}
+	
+	public static Config refreshConfig()  {
+		try {
+			FileReader r = new FileReader("./config.json");
+			String json = IOUtils.toString(r);
+			if (!json.equals(jsonCfg)) {
+				Log.main.log("Config changed: "+json);
+				cfg = getMapper().readValue(json, Config.class);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return cfg;
+	}
+	
+	private static Thread refreshConfigThread;
+	static {
+		refreshConfigThread = new Thread() {
+			public void run() {
+				while(true) {
+					Utils.sleep(30000);
+					refreshConfig();
+				}
+			}
+		};
 	}
 }

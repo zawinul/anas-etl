@@ -1,12 +1,7 @@
 package it.eng.anas.main;
 
-import java.util.List;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import it.eng.anas.Utils;
 import it.eng.anas.threads.DBConsumeThreadFactory;
-import it.eng.anas.threads.EsempioJobFactory;
 import it.eng.anas.threads.JobFactory;
 import it.eng.anas.threads.ThreadManager;
 
@@ -37,7 +32,7 @@ public class MainThreadStart {
 	private void startJobs() {
 		factory = new DBConsumeThreadFactory();
 		manager = new ThreadManager(factory);
-		manager.setNumberOfThreads(10);		
+		manager.setNumberOfThreads(-1);		
 	}
 	
 	

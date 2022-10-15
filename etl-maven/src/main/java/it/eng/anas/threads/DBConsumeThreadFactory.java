@@ -3,9 +3,7 @@ package it.eng.anas.threads;
 import java.util.List;
 
 import it.eng.anas.Utils;
-import it.eng.anas.main.MainGetQueues.QDesc;
 import it.eng.anas.model.Esempio1;
-import it.eng.anas.model.Model;
 
 public class DBConsumeThreadFactory extends JobFactory {
 	

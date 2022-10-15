@@ -36,6 +36,7 @@ import com.filenet.api.query.SearchSQL;
 import com.filenet.api.query.SearchScope;
 import com.filenet.api.util.UserContext;
 
+import it.eng.anas.model.Config;
 import it.eng.anas.model.FnSecurityContext;
 
 public class FilenetHelper {
@@ -48,11 +49,12 @@ public class FilenetHelper {
 
 	public void initFilenetAuthentication(FnSecurityContext securityContext){
 	    try {
-	    	connection = Factory.Connection.getConnection(securityContext.uri);
+	    	Config c = Utils.getConfig();
+	    	connection = Factory.Connection.getConnection(c.filenet.uri);
 	    	subject = UserContext.createSubject(connection, 
-	    			securityContext.userid, 
-	    			securityContext.password, 
-	    			securityContext.filenetStanza);
+	    			c.filenet.userid, 
+	    			c.filenet.password, 
+	    			c.filenet.stanza);
 	    } catch (EngineRuntimeException e) {
 	    	logger.error("Unable to authenticated at context ");
 	    	throw e;

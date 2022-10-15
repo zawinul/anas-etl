@@ -506,8 +506,10 @@ public class SimpleDbOp implements Cleanable {
 	
 	
 	protected SimpleDbOp logError() {
-		if (error)
-			Log.db.warn("Errore DBOp, sql="+sql, lastException);
+		if (error) {
+			Log.db.log("Errore DBOp, sql="+sql);
+			Log.db.log(lastException);
+		}
 		return this;
 	}
 	

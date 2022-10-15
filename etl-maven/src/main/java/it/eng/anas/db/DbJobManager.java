@@ -2,7 +2,6 @@ package it.eng.anas.db;
 
 import java.sql.Connection;
 import java.util.Date;
-import java.util.function.Consumer;
 
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
@@ -17,7 +16,7 @@ public class DbJobManager {
 		this.connection = connection;
 	}
 
-	public DBJob createNew(int id, String objectid, Integer priority, DBJob.Status status, String queue, String creation,
+	public  DBJob createNew(int id, String objectid, Integer priority, DBJob.Status status, String queue, String creation,
 			String last_change, String command, String body) {
 		DBJob ret = new DBJob();
 		ret.id = id;
@@ -32,15 +31,15 @@ public class DbJobManager {
 		return ret;
 	}
 
-	public DBJob insertNew(String queue, String objectid, int priority,  String command, String body) {
+	public  DBJob insertNew(String queue, String objectid, int priority,  String command, String body) {
 		String time = Utils.date2String(new Date());
 		DBJob job = createNew(-1, objectid, priority,DBJob.Status.ready,queue,time, time, command, body);
 		
 		return insertNew(job);
 	}
 
-	public DBJob insertNew(DBJob job) {
-		SimpleDbOp op =new SimpleDbOp(connection)
+	public synchronized DBJob insertNew(DBJob job) {
+		SimpleDbOp op = new SimpleDbOp(connection)
 			.query("select id from jobid_sequence")
 			.executeQuery();
 		op.next();
@@ -50,8 +49,25 @@ public class DbJobManager {
 
 		job.id = id;
 		job.creation = job.last_change = Utils.date2String(new Date());
-		String insertSql = "insert into job(jobid,objectid,priority,status,queue,creation,last_change,command,body) values(?,?,?,?,?,?,?,?,?)";
-		SimpleDbOp op2 = new SimpleDbOp(connection)
+		
+		insert(job, "job");
+		
+		new SimpleDbOp(connection)
+			.query("update jobid_sequence set id=?")
+			.setInt(1, id+1)
+			.execute()
+			.close()
+			.throwOnError();
+
+		return job;
+	}
+	
+	private void insert(DBJob job, String table) {
+		String insertSql = "insert into "
+				+ table
+				+ " (jobid,objectid,priority,status,queue,creation,last_change,command,body) "
+				+ " values(?,?,?,?,?,?,?,?,?)";
+		SimpleDbOp op = new SimpleDbOp(connection)
 			.query(insertSql)
 			.setInt(1, job.id)
 			.setString(2, job.objectid)
@@ -64,19 +80,10 @@ public class DbJobManager {
 			.setBlob(9, job.body)
 			.execute()
 			.close()
-			.throwOnError();
-		
-		new SimpleDbOp(connection)
-			.query("update jobid_sequence set id=?")
-			.setInt(1, id+1)
-			.execute()
-			.close()
-			.throwOnError();
-
-		return job;
+			.throwOnError();		
 	}
 	
-	public DBJob extract(String queue) throws Exception {
+	public synchronized DBJob extract(String queue) throws Exception {
 		Connection con = connection;
 		if (con==null)
 			con = DBConnectionFactory.defaultFactory.getConnection();
@@ -116,21 +123,21 @@ public class DbJobManager {
 		}
 	}
 	
-	public DBJob ack(DBJob job) throws Exception {
+	public synchronized DBJob ack(DBJob job) throws Exception {
 		job.status = DBJob.Status.done;
 		job.last_change = Utils.date2String(new Date());
-		String sql = "update job set status=?, last_change=? where jobid=?";
+		insert(job, "job_done");
+		
+		String sql = "delete from job where jobid=?";
 		new SimpleDbOp(connection)
 			.query(sql)
-			.setString(1, job.status.toString())
-			.setString(2, job.last_change)
-			.setInt(3, job.id)
+			.setInt(1, job.id)
 			.execute().close().throwOnError();
 		return job;
 	}
 
 	
-	public DBJob nack(DBJob job) {
+	public synchronized DBJob nack(DBJob job) {
 		job.status = DBJob.Status.error;
 		job.last_change = Utils.date2String(new Date());
 		String sql = "update job set status=?, last_change=? where jobid=?";
