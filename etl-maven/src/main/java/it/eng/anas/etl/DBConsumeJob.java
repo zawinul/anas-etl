@@ -11,16 +11,13 @@ import it.eng.anas.Utils;
 import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.DbJobManager;
 import it.eng.anas.model.DBJob;
-import it.eng.anas.model.Esempio1;
-import it.eng.anas.model.Model;
 import it.eng.anas.threads.Job;
 
-public class DBConsumeJob<T extends Model> extends Job {
+public class DBConsumeJob extends Job {
 	public String queueName;
 	public ObjectMapper mapper;
 	public DbJobManager manager;
 	public boolean closed = false;
-	public Class<? extends Model> tclass;
 	public int waitOnBusy = 500;
 	public Connection connection;
 	
@@ -28,12 +25,11 @@ public class DBConsumeJob<T extends Model> extends Job {
 		Log.main.log(position+":"+tag+":"+msg);
 	}
 
-	public DBConsumeJob(String tag, String queueName, String type, int priority, Class<? extends Model> tclass) {
+	public DBConsumeJob(String tag, String queueName, int priority) {
 
-		super(tag, type, priority);
+		super(tag, queueName, priority);
 		
 		this.queueName = queueName;
-		this.tclass = tclass;
 		try {
 			connection = DBConnectionFactory.defaultFactory.getConnection();
 			manager = new DbJobManager(connection);
@@ -60,15 +56,10 @@ public class DBConsumeJob<T extends Model> extends Job {
 		log("end");
 	}
 
-	public void onMessage(T obj) throws Exception {
-		log("onMessage "+obj);
+	public void onMessage(DBJob job) throws Exception {
+		log("onMessage "+job);
 		int t = 500+(int)(Math.random()*5000);
 		Utils.sleep(t);
-	}
-
-	public T beforeResend(T obj) {
-		((Esempio1)obj).nretry++;
-		return obj;
 	}
 
 	private boolean singleStep() throws Exception {
@@ -78,12 +69,10 @@ public class DBConsumeJob<T extends Model> extends Job {
 			return false;
 		}
 
-		log("onMessage|"+job.command);
-		@SuppressWarnings("unchecked")
-		T obj = (T) mapper.readValue(job.body, tclass);
+		log("onMessage|"+job.operation);
 		
 		try {
-			onMessage(obj);
+			onMessage(job);
 			log("ok");
 			manager.ack(job);
 		} catch (Exception e) {

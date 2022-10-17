@@ -6,6 +6,7 @@ import java.util.Date;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.model.DBJob;
+import it.eng.anas.model.DBJob.Status;
 
 public class DbJobManager {
 	private Connection connection;
@@ -16,25 +17,21 @@ public class DbJobManager {
 		this.connection = connection;
 	}
 
-	public  DBJob createNew(int id, String objectid, Integer priority, DBJob.Status status, String queue, String creation,
-			String last_change, String command, String body) {
-		DBJob ret = new DBJob();
-		ret.id = id;
-		ret.objectid = objectid;
-		ret.priority = priority;
-		ret.status = status;
-		ret.queue = queue;
-		ret.creation = creation;
-		ret.last_change = last_change;
-		ret.command = command;
-		ret.body = body;
-		return ret;
-	}
 
-	public  DBJob insertNew(String queue, String objectid, int priority,  String command, String body) {
+	public  DBJob insertNew(String queue, int priority,  
+			String operation, String par1, String par2, String par3, String extra) {
 		String time = Utils.date2String(new Date());
-		DBJob job = createNew(-1, objectid, priority,DBJob.Status.ready,queue,time, time, command, body);
-		
+		DBJob job = new DBJob(
+			-1, //id
+			DBJob.Status.ready,
+			priority,
+			0, // n retry
+			queue, 
+			operation,
+			par1, par2, par3, 
+			time, time, 
+			extra
+		);		
 		return insertNew(job);
 	}
 
@@ -65,19 +62,22 @@ public class DbJobManager {
 	private void insert(DBJob job, String table) {
 		String insertSql = "insert into "
 				+ table
-				+ " (jobid,objectid,priority,status,queue,creation,last_change,command,body) "
-				+ " values(?,?,?,?,?,?,?,?,?)";
+				+ " (jobid,priority,status,nretry,queue,operation,par1,par2,par3,creation,last_change,extra) "
+				+ " values(?,?,?,?,?,?,?,?,?,?,?,?)";
 		SimpleDbOp op = new SimpleDbOp(connection)
 			.query(insertSql)
 			.setInt(1, job.id)
-			.setString(2, job.objectid)
-			.setInt(3, job.priority)
-			.setString(4, job.status.toString())
+			.setInt(2, job.priority)
+			.setString(3, job.status.toString())
+			.setInt(4, job.nretry)
 			.setString(5, job.queue)
-			.setString(6, job.creation)
-			.setString(7, job.last_change)
-			.setString(8, job.command)
-			.setBlob(9, job.body)
+			.setString(6, job.operation)
+			.setString(7, job.par1)
+			.setString(8, job.par2)
+			.setString(9, job.par3)
+			.setString(10, job.creation)
+			.setString(11, job.last_change)
+			.setBlob(12, job.extra)
 			.execute()
 			.close()
 			.throwOnError();		
@@ -90,7 +90,7 @@ public class DbJobManager {
 		boolean savedAutoCommit = con.getAutoCommit();
 		con.setAutoCommit(false);
 		try {
-			String sql1 = "select * from job where queue=? and status=? order by priority desc nretry asc limit 1";
+			String sql1 = "select * from job where queue=? and status=? order by priority desc, nretry, operation, par1, par2, par3 limit 1";
 			SimpleDbOp op1 = new SimpleDbOp(connection)
 					.query(sql1)
 					.setString(1, queue)
@@ -138,14 +138,13 @@ public class DbJobManager {
 
 	
 	public synchronized DBJob nack(DBJob job) {
-		job.status = DBJob.Status.error;
 		job.last_change = Utils.date2String(new Date());
-		String sql = "update job set status=?, last_change=? where jobid=?";
+		insert(job, "job_error");
+		
+		String sql = "delete from job where jobid=?";
 		new SimpleDbOp(connection)
 			.query(sql)
-			.setString(1, job.status.toString())
-			.setString(2, job.last_change)
-			.setInt(3, job.id)
+			.setInt(1, job.id)
 			.execute().close().throwOnError();
 		return job;
 	}
@@ -155,41 +154,21 @@ public class DbJobManager {
 			return null;
 		final DBJob ret = new DBJob();
 		ret.id = op.getInt("jobid");
-		ret.objectid = op.getString("objectid");
 		ret.priority = op.getInt("priority");
 		String status=op.getString("status");
 		//Log.db.log("status="+status);
+		ret.nretry = op.getInt("nretry");
 		ret.status = DBJob.Status.valueOf(status);
 		ret.queue = op.getString("queue");
+		ret.operation = op.getString("operation");
+		ret.par1 = op.getString("par1");
+		ret.par2 = op.getString("par2");
+		ret.par3 = op.getString("par3");
 		ret.creation = op.getString("creation");
 		ret.last_change = op.getString("last_change");
-		ret.command = op.getString("command");
-		ret.body = op.getBlobAsString("body");
+		ret.extra = op.getBlobAsString("extra");
 
 		return ret;
 	} 
 	
-	public static int test=1;
-	public static void main(String args[]) throws Exception {
-		if (test==1) {
-			DbJobManager m = new DbJobManager();
-			DBJob job = new DBJob();
-			for(int i=0; i<10;i++)
-				m.insertNew("esempio1", "{"+Utils.rndString(4)+"}", 7, Utils.rndString(6), Utils.rndString(30));
-			Log.db.log("ok");
-		}
-		else if (test==2) {
-			DbJobManager m = new DbJobManager();
-			SimpleDbOp op = new SimpleDbOp()
-				.query("select * from job")
-				.executeQuery();
-			while(true) {
-				DBJob job = m.fromDB(op);
-				if (job==null)
-					break;
-				System.out.println(job);
-			}
-			op.throwOnError();
-		}
-	}
 }

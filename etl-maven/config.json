@@ -8,12 +8,13 @@
     "stanza" : ""
   },
   "db" : {
-    "url" : "jdbc:mysql://host1:3306/anas-etl-prod",
+    "url" : "jdbc:mysql://localhost:3306/anas-etl-prod",
     "username" : "anas-etl-prod",
     "password" : "anas-etl-prod"
   },
   "shortPause" : [ 100, 200 ],
   "longPause" : [ 10000, 30000 ],
+  "nMaxRetry" : 10,
   "schedule" : {
     "mer 18:40" : 8,
     "lun 07:10" : 5,

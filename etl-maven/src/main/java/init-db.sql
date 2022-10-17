@@ -1,10 +1,10 @@
 CREATE TABLE `job` (
 	`jobid` int(10) not NULL,
-	`priority` int(10) 
-	`nretry` int(10)
+	`priority` int(10),
+	`nretry` int(10),
 	`status` varchar(20),
 	`queue` varchar(50),
-	`type` varchar(50),
+	`operation` varchar(50),
 	`par1` varchar(50),
 	`par2` varchar(50),
 	`par3` varchar(50),
@@ -13,7 +13,7 @@ CREATE TABLE `job` (
 	`extra` longtext
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-
+// lo stesso per job_done e job_error
 
 
 

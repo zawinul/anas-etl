@@ -9,6 +9,7 @@ public class Config extends Model {
 	public DbConfig db = new DbConfig();
 	public int shortPause[] = {100, 200};
 	public int longPause[] = {10000, 30000};
+	public int nMaxRetry = 10;
 	
 	public HashMap<String, Integer> schedule = new HashMap<String, Integer>();
 
