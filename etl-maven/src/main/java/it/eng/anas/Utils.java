@@ -86,7 +86,7 @@ public class Utils {
 	
 	private static Config cfg;
 	private static String jsonCfg;
-	private static long cfgExpire = 0;
+
 	public static Config getConfig() {
 		return (cfg!=null) ? cfg : refreshConfig();
 	}

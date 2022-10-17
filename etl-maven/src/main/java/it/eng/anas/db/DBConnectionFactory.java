@@ -3,19 +3,25 @@ package it.eng.anas.db;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
+import it.eng.anas.Utils;
+import it.eng.anas.model.Config;
+
 public class DBConnectionFactory {
 	
 	public DBConnectionFactory(String url, String user, String password) {
-		super();
 		this.url = url;
 		this.user = user;
 		this.password = password;
 	}
 
-	public static DBConnectionFactory defaultFactory = new DBConnectionFactory(
-			"jdbc:mysql://localhost:3306/anas-etl-prod", 
-			"anas-etl-prod", 
-			"anas-etl-prod");
+	public static DBConnectionFactory defaultFactory;
+	static {
+		Config cfg = Utils.getConfig();
+		defaultFactory = new DBConnectionFactory(
+				cfg.db.url,
+				cfg.db.username,
+				cfg.db.password);
+	}
 
 	private String url;
 	private String user;

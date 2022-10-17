@@ -1,7 +1,7 @@
 package it.eng.anas.main;
 
 import it.eng.anas.Utils;
-import it.eng.anas.threads.DBConsumeThreadFactory;
+import it.eng.anas.etl.DBConsumeThreadFactory;
 import it.eng.anas.threads.JobFactory;
 import it.eng.anas.threads.ThreadManager;
 

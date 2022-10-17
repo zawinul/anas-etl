@@ -90,7 +90,7 @@ public class DbJobManager {
 		boolean savedAutoCommit = con.getAutoCommit();
 		con.setAutoCommit(false);
 		try {
-			String sql1 = "select * from job where queue=? and status=? order by priority desc limit 1";
+			String sql1 = "select * from job where queue=? and status=? order by priority desc nretry asc limit 1";
 			SimpleDbOp op1 = new SimpleDbOp(connection)
 					.query(sql1)
 					.setString(1, queue)

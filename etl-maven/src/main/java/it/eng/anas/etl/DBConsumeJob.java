@@ -1,10 +1,11 @@
-package it.eng.anas.threads;
+package it.eng.anas.etl;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.eng.anas.FileHelper;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DBConnectionFactory;
@@ -12,6 +13,7 @@ import it.eng.anas.db.DbJobManager;
 import it.eng.anas.model.DBJob;
 import it.eng.anas.model.Esempio1;
 import it.eng.anas.model.Model;
+import it.eng.anas.threads.Job;
 
 public class DBConsumeJob<T extends Model> extends Job {
 	public String queueName;
@@ -21,7 +23,6 @@ public class DBConsumeJob<T extends Model> extends Job {
 	public Class<? extends Model> tclass;
 	public int waitOnBusy = 500;
 	public Connection connection;
-	
 	
 	public void log(String msg) {
 		Log.main.log(position+":"+tag+":"+msg);

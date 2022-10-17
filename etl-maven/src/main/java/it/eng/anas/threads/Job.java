@@ -3,7 +3,7 @@ package it.eng.anas.threads;
 public abstract class Job extends Thread {
 	public Exception exitCause;
 	public String tag;
-	public String type;
+	public String queue;
 	public int priority;
 	public int position;
 	public boolean exitRequest = false;
@@ -14,10 +14,10 @@ public abstract class Job extends Thread {
 	}
 	
 
-	public Job(String tag, String type, int priority) {
+	public Job(String tag, String queue, int priority) {
 		super();
 		this.tag = tag;
-		this.type = type;
+		this.queue = queue;
 		this.priority = priority;
 	}
 	

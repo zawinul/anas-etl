@@ -38,6 +38,7 @@ import com.filenet.api.util.UserContext;
 
 import it.eng.anas.model.Config;
 import it.eng.anas.model.FnSecurityContext;
+import it.eng.anas.model.Model;
 
 public class FilenetHelper {
 	private Subject subject=null;
@@ -62,6 +63,40 @@ public class FilenetHelper {
 	 }
 	
 	
+	
+	public List<String> getFolderIdByClassName(String classeDocumentale,ObjectStore os) throws Exception {
+		String query = "SELECT * FROM "+classeDocumentale;
+		os.refresh();
+		SearchScope scope = new SearchScope(os);
+		SearchSQL sql = new SearchSQL(query);
+		int PAGE_SIZE = 100;
+		IndependentObjectSet docSet = scope.fetchObjects(sql, PAGE_SIZE,null, true);
+
+		ArrayList<String> ret = new ArrayList<String>();
+		PageIterator pageIterator = docSet.pageIterator();
+		while (pageIterator.nextPage()) {
+			for (Object obj : pageIterator.getCurrentPage()) {
+				Folder f = (Folder) obj;
+				ret.add(f.get_Id().toString());
+			}
+		}
+		return ret;
+	}
+	
+	public static class FolderTreeNode extends Model {
+		public String id;
+		public List<FolderTreeNode> child = new ArrayList<FolderTreeNode>();
+		public List<String> doc = new ArrayList<String>();
+	};
+	
+	
+	public FolderTreeNode getFolderTree(String folderId) { 
+		FolderTreeNode ret = new FolderTreeNode();
+		ret.id = folderId;
+		
+		return ret;
+	}
+
 	public List<Folder> getFolderByClassName(String classeDocumentale,ObjectStore os) throws Exception {
 		String query = "SELECT * FROM "+classeDocumentale;
 		os.refresh();
