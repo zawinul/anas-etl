@@ -1,0 +1,10 @@
+@startuml
+MainThreadStart --> WebServer : use
+MainThreadStart --> ThreadManager : use
+MainThreadStart --> DBConsumeThreadFactory : use
+JobFactory <|-- DBConsumeThreadFactory
+DBConsumeThreadFactory --> AnasEtlJob : use
+AnasEtlJob --> FileHelper : use
+AnasEtlJob --> FileNetHelper : use
+
+@enduml

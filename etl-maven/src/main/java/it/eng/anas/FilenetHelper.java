@@ -13,19 +13,25 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.filenet.api.collection.ClassDescriptionSet;
+import com.filenet.api.collection.DateTimeList;
 import com.filenet.api.collection.IdList;
 import com.filenet.api.collection.IndependentObjectSet;
 import com.filenet.api.collection.PageIterator;
 import com.filenet.api.collection.StringList;
+import com.filenet.api.constants.FilteredPropertyType;
 import com.filenet.api.core.Connection;
 import com.filenet.api.core.Factory;
 import com.filenet.api.core.Folder;
 import com.filenet.api.core.ObjectStore;
 import com.filenet.api.exception.EngineRuntimeException;
+import com.filenet.api.property.FilterElement;
 import com.filenet.api.property.Properties;
 import com.filenet.api.property.Property;
 import com.filenet.api.property.PropertyBoolean;
 import com.filenet.api.property.PropertyDateTime;
+import com.filenet.api.property.PropertyDateTimeList;
+import com.filenet.api.property.PropertyFilter;
 import com.filenet.api.property.PropertyFloat64;
 import com.filenet.api.property.PropertyId;
 import com.filenet.api.property.PropertyIdList;
@@ -103,7 +109,14 @@ public class FilenetHelper {
 		SearchScope scope = new SearchScope(os);
 		SearchSQL sql = new SearchSQL(query);
 		int PAGE_SIZE = 100;
-		IndependentObjectSet docSet = scope.fetchObjects(sql, PAGE_SIZE,null, true);
+		// Specify a property filter to use for the filter parameter, if needed.
+		// This can be null if you are not filtering properties.
+		PropertyFilter myFilter = new PropertyFilter();
+		int myFilterLevel = 1;
+		myFilter.setMaxRecursion(1);		
+		myFilter.addIncludeType(new FilterElement(null, null, null, FilteredPropertyType.ANY, null));
+
+		IndependentObjectSet docSet = scope.fetchObjects(sql, PAGE_SIZE, myFilter, true);
 
 		ArrayList<Folder> ret = new ArrayList<Folder>();
 		// Get the page iterator
@@ -142,12 +155,9 @@ public class FilenetHelper {
 	public void setJsonPropertyValue(Property prop, String name, ObjectNode node) {
 //		PropertyBinary
 //		PropertyBinaryList
-//		PropertyBoolean
 //		PropertyContent
-//		PropertyDateTimeList
 //		PropertyDependentObjectList
 //		PropertyIndependentObjectSet
-//		PropertyInteger32
 		
 		if (prop instanceof PropertyBoolean) {
 			node.put(name, prop.getBooleanValue());
@@ -167,6 +177,16 @@ public class FilenetHelper {
 		}
 		else if (prop instanceof PropertyDateTime) {
 			node.put(name, prop.getDateTimeValue().toString());
+		}
+		else if (prop instanceof PropertyDateTimeList) {
+			DateTimeList list = prop.getDateTimeListValue();
+			int size = list.size();
+			ArrayNode array = mapper.createArrayNode();
+			for(int i=0;i<size;i++) {
+				String val = list.get(i).toString();
+				array.set(i,  val);
+			}
+			node.set(name, array);
 		}
 		else if (prop instanceof PropertyInteger32) {
 			node.put(name, prop.getInteger32Value());
@@ -188,7 +208,9 @@ public class FilenetHelper {
 			node.set(name, node);
 		}
 		else {
-			node.put(name, prop.getObjectValue().toString()+" (unmanaged type)");
+			node.put(name, prop.getObjectValue().toString()+" (unmanaged type "+prop.getClass().getName()+")");
 		}
 	}
+	
+
 }
