@@ -3,15 +3,25 @@ package it.eng.anas.threads;
 import java.util.ArrayList;
 import java.util.List;
 
+import it.eng.anas.Event;
 import it.eng.anas.ScheduleHelper;
 
 public class ThreadManager {
 	public int NMAXTHREADS = 200;
-	public List<Job> threads = new ArrayList<Job>();
-	public JobFactory factory;
+	public List<Worker> threads = new ArrayList<Worker>();
+	public WorkerFactory factory;
 	public int forcedNumberOfThreads = 0;
-	public ThreadManager(JobFactory factory) {
+	
+	public static ThreadManager mainThreadManager;
+	
+	public ThreadManager(WorkerFactory factory) {
 		this.factory = factory;
+		Event.addListener("exit", new Runnable() {
+			public void run() {
+				killAll(true);
+			}
+		});
+
 	}
 	
 	public static void log(String x) { System.out.println(x);}
@@ -24,8 +34,8 @@ public class ThreadManager {
 	
 	public void addOne() {
 		log("addOne");
-		final Job job = factory.create(threads);
-		job.cleanup = new Runnable() {
+		final Worker job = factory.create(threads);
+		job.cleanup.add( new Runnable() {
 			@Override
 			public void run() {
 				log("cleanup");
@@ -33,7 +43,7 @@ public class ThreadManager {
 					threads.remove(job);
 				updateNumOfThreads();
 			}
-		};
+		});
 		threads.add(job);
 		job.start();
 	}
@@ -43,9 +53,9 @@ public class ThreadManager {
 		log("deleteOne");
 		if (threads.size()==0)
 			return;
-		Job selected = threads.get(0);
+		Worker selected = threads.get(0);
 		int minprio = selected.priority;
-		for(Job t: threads) {
+		for(Worker t: threads) {
 			if (t.priority<minprio) {
 				minprio = t.priority;
 				selected = t;
@@ -86,14 +96,14 @@ public class ThreadManager {
 	}
 	
 	public void killAll(boolean andWait) {
-		List<Job> temp = new ArrayList<Job>(threads);
+		List<Worker> temp = new ArrayList<Worker>(threads);
 		threads.clear();
 		forcedNumberOfThreads = 0;
 		
-		for(Job t: temp)
+		for(Worker t: temp)
 			t.exitRequest = true;
 		if (andWait) {
-			for(Job t: temp) {
+			for(Worker t: temp) {
 				try {
 					t.join();
 					log("join thread "+t.tag);
@@ -105,60 +115,6 @@ public class ThreadManager {
 		}
 	}
 
-//	public  class JobThread extends Thread {
-//		public Exception exitCause;
-//		public String tag;
-//		public String queue;
-//		public String type;
-//		int priority;
-//		int position;
-//		public boolean exitRequest = false;
-//		
-//		public JobThread(String tag, String queue, String type, int priority, Integer maxrun) {
-//			super();
-//			this.tag = tag;
-//			this.queue = queue;
-//			this.type = type;
-//			this.priority = priority;
-//		}
-//
-//		public void log(String x) { System.out.println(tag+": "+x); }
-//		
-//		public void onExit() {
-//			log("onExit");
-//			if (threads.contains(this))
-//				threads.remove(this);
-//			updateNumOfThreads();
-//		}
-//		
-//		
-//		
-//		@Override
-//		public void run() {
-//			try {
-//				run2();
-//			}
-//			catch(Exception e) {
-//				e.printStackTrace();
-//				exitCause = e;
-//			}
-//			finally {
-//				onExit();
-//			}
-//		}
-//		
-//		public void run2() {
-//			log("start");
-//			while(true) {
-//				if (exitRequest)
-//					break;
-//				log("in loop");
-//				
-//				Utils.sleep(3000);
-//			}
-//			log("end");
-//		}
-//	}
 }
 
 

@@ -3,6 +3,7 @@ package it.eng.anas;
 import java.io.FileReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import org.apache.commons.io.IOUtils;
@@ -32,7 +33,19 @@ public class Utils {
 	public static void randomSleep(int msMin, int msMax) {
 		sleep(msMin+(int)(Math.random()*(msMax-msMin)));
 	}
+
 	
+	public static void shortPause() {
+		Config c = getConfig();
+		randomSleep(c.shortPause[0], c.shortPause[1]);
+	}
+
+	
+	public static void longPause() {
+		Config c = getConfig();
+		randomSleep(c.longPause[0], c.longPause[1]);
+	}
+
 	public static ObjectMapper getMapper() {
 		ObjectMapper mapper = getMapperOneLine();
 		mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -41,6 +54,8 @@ public class Utils {
 
 	public static ObjectMapper getMapperOneLine() {
 		ObjectMapper mapper = new ObjectMapper()
+				.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+				.configure(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS, false)
 				.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 				.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
 				.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false)
@@ -91,13 +106,15 @@ public class Utils {
 		return (cfg!=null) ? cfg : refreshConfig();
 	}
 	
-	public static Config refreshConfig()  {
+	private static Config refreshConfig()  {
 		try {
 			FileReader r = new FileReader("./config.json");
 			String json = IOUtils.toString(r);
 			if (!json.equals(jsonCfg)) {
+				jsonCfg = json;
 				Log.main.log("Config changed: "+json);
 				cfg = getMapper().readValue(json, Config.class);
+				Event.emit("config-change");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -106,14 +123,21 @@ public class Utils {
 	}
 	
 	private static Thread refreshConfigThread;
+	private static boolean exiting = false;
 	static {
+		Event.addListener("exit", new Runnable() {
+			public void run() {
+				exiting=true;
+			}
+		});
 		refreshConfigThread = new Thread() {
 			public void run() {
-				while(true) {
+				while(!exiting) {
 					Utils.sleep(30000);
 					refreshConfig();
 				}
 			}
 		};
+		refreshConfigThread.start();
 	}
 }

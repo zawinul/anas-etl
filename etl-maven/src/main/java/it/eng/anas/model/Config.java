@@ -25,5 +25,6 @@ public class Config extends Model {
 		public String url = "";
 		public String username  = "";
 		public String password  = "";
+		public String driverClass = "";
 	}
 }

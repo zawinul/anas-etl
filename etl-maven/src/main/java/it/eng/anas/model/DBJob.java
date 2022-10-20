@@ -17,6 +17,10 @@ public class DBJob extends Model {
 	
 	public String creation;
 	public String last_change;
+
+	public int parent_job;
+	public int duration;
+	
 	public String extra;
 	
 	public static enum Status {
@@ -28,7 +32,7 @@ public class DBJob extends Model {
 
 	public DBJob() {}
 	public DBJob(int id, Status status, Integer priority, Integer nretry, String queue, String command, String par1,
-			String par2, String par3, String creation, String last_change, String extra) {
+			String par2, String par3, String creation, String last_change, int parent_job, int duration, String extra) {
 		super();
 		this.id = id;
 		this.status = status;
@@ -41,6 +45,8 @@ public class DBJob extends Model {
 		this.par3 = par3;
 		this.creation = creation;
 		this.last_change = last_change;
+		this.parent_job = parent_job;
+		this.duration = duration;
 		this.extra = extra;
 	}
 

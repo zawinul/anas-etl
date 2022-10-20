@@ -17,7 +17,6 @@ public class ScheduleHelper {
 	private static SimpleDateFormat schedDateFormat = new SimpleDateFormat("EEE HH:mm", Locale.ITALIAN);
 
 	private static List<Sched> tab;
-	private static Thread updateTabThread;
 	
 	public static int getNumOfThread() throws Exception {
 		String now = schedDateFormat.format(new Date());
@@ -38,12 +37,12 @@ public class ScheduleHelper {
 			if (daysIta[i].equals(dwstr))
 				dw = i;
 		if (dw<0)
-			throw new Exception ("nome della settimana non riconosciuto:"+dwstr);
+			throw new Exception ("nome del giorno della settimana non riconosciuto:"+dwstr);
 		
 		int hh = Integer.parseInt(date.substring(4,6));
 		int mm = Integer.parseInt(date.substring(7,9));
 		int ret = dw*24*60+hh*60+mm;
-		Log.main.log(date+"->"+ret+"   hh="+hh+" mm="+mm+" dw="+dw);
+		//Log.main.log(date+"->"+ret+"   hh="+hh+" mm="+mm+" dw="+dw);
 		return ret;
 	}
 	
@@ -91,15 +90,16 @@ public class ScheduleHelper {
 		}
 	}
 	
-	
+
+
 	static {
 		buildTableFromConfig();
-		updateTabThread = new Thread() {
+		Event.addListener("config-change",new Runnable() {
+			@Override
 			public void run() {
-				Utils.sleep(60000);
+				System.out.println("rebuild of schedule table due to configuration change");
 				buildTableFromConfig();
 			}
-		};
-		updateTabThread.start();
+		});
 	}
 }

@@ -8,6 +8,7 @@
     "stanza" : ""
   },
   "db" : {
+	"driverClass": "com.mysql.cj.jdbc.Driver",
     "url" : "jdbc:mysql://localhost:3306/anas-etl-prod",
     "username" : "anas-etl-prod",
     "password" : "anas-etl-prod"

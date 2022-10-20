@@ -274,6 +274,24 @@ public class SimpleDbOp implements Cleanable {
 	public double getDouble(String key) {
 		return getDouble(key, 0);
 	}
+
+	
+	public boolean isNull(String key) {
+		if (error)
+			return false;
+		if (rs==null) {
+			gestisciEccezione("chiamata a isNull() senza il resultset, sql="+sql);
+			return false;
+		}
+		
+		try {
+			return rs.getObject(key)==null;
+		} catch (Exception e) {
+			gestisciEccezione(e);
+			return false;
+		}
+	}
+
 	
 	public double getDouble(String key, double defValue) {
 		if (error)
@@ -284,6 +302,7 @@ public class SimpleDbOp implements Cleanable {
 		}
 		
 		try {
+			
 			return rs.getDouble(key);
 		} catch (Exception e) {
 			gestisciEccezione(e);
@@ -415,6 +434,8 @@ public class SimpleDbOp implements Cleanable {
 	}
 
 	public SimpleDbOp setBlob(int position, String val)  {
+		if (val==null)
+			return setBlobFromIS(position, null);
 		byte data[] = val.getBytes(UTF8.charset);
 		InputStream s = new ByteArrayInputStream(data);
 		return setBlobFromIS(position,  s);
@@ -491,6 +512,12 @@ public class SimpleDbOp implements Cleanable {
 		}
 	}
 	
+	public ResultSet getResultSet() {
+		return rs;
+	}
+	
+	//--------------------
+
 	private boolean checkps() {
 		if (error)
 			return false;
@@ -502,7 +529,6 @@ public class SimpleDbOp implements Cleanable {
 		else 
 			return true;
 	}
-	//--------------------
 	
 	
 	protected SimpleDbOp logError() {

@@ -43,7 +43,6 @@ import com.filenet.api.query.SearchScope;
 import com.filenet.api.util.UserContext;
 
 import it.eng.anas.model.Config;
-import it.eng.anas.model.FnSecurityContext;
 import it.eng.anas.model.Model;
 
 public class FilenetHelper {
@@ -54,7 +53,7 @@ public class FilenetHelper {
 	private ObjectMapper mapper = Utils.getMapper();
 	private static Logger logger = LoggerFactory.getLogger("filenet");
 
-	public void initFilenetAuthentication(FnSecurityContext securityContext){
+	public void initFilenetAuthentication(){
 	    try {
 	    	Config c = Utils.getConfig();
 	    	connection = Factory.Connection.getConnection(c.filenet.uri);

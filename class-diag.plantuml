@@ -1,10 +1,54 @@
 @startuml
-MainThreadStart --> WebServer : use
-MainThreadStart --> ThreadManager : use
-MainThreadStart --> DBConsumeThreadFactory : use
-JobFactory <|-- DBConsumeThreadFactory
-DBConsumeThreadFactory --> AnasEtlJob : use
-AnasEtlJob --> FileHelper : use
-AnasEtlJob --> FileNetHelper : use
+
+package  #EEEEFF {
+	class Worker {
+		public void run();
+	}
+
+	class DbConsumeWorker {
+		public void onJob(DBJob job);
+	}
+	class AnasEtlWorker {
+	}
+	Worker <|-- DbConsumeWorker
+	DbConsumeWorker <|-- AnasEtlWorker
+	note right of DbConsumeWorker : thread che scoda i\njob e li esegue
+	note right of Worker : è un java.lang.Thread
+	note right of AnasEtlWorker : scoda i job ANAS\ne li esegue
+
+}
+
+package  #F0FFF0 {
+	class WorkerFactory {
+		public Worker create(...);
+	}
+	WorkerFactory <|-- AnasEtlWorkerFactory
+	note right of WorkerFactory : chiamato a runtime per \ngenerare nuovi thread
+
+}
+
+package #FFEEEE {
+	class ThreadManager {}
+	class ScheduleHelper {
+		int getNumOfThread()
+	}
+	note right of ScheduleHelper : decide quanti thread\ncontemporaneamente attivi\nin base a orario e configurazione
+	note right of ThreadManager : start e stop dei thread
+}
+
+AnasEtlWorkerFactory --> AnasEtlWorker : genera
+
+MainThreadStart --> ThreadManager : usa
+MainThreadStart --> WorkerFactory : genera
+MainThreadStart --> WebServer : usa
+' WorkerFactory --> Worker : genera
+AnasEtlWorker --> FileHelper : usa
+AnasEtlWorker --> FileNetHelper : usa
+ThreadManager --> ScheduleHelper : usa
+ThreadManager --> WorkerFactory : usa
+note top of MainThreadStart : START!
+note top of WebServer : gestisce le API REST per\n monitoraggio e conduzione
+note left of FileHelper: scrive su disco
+note right of FileNetHelper : legge da FileNet
 
 @enduml

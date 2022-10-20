@@ -29,8 +29,8 @@ public class DBConnectionFactory {
 
 	
 	public Connection getConnection() throws Exception {
-		@SuppressWarnings("unused")
-		Class c = Class.forName("com.mysql.cj.jdbc.Driver");
+		String driverClass = Utils.getConfig().db.driverClass;
+		Class.forName(driverClass);
 		Connection conn = DriverManager.getConnection(url, user, password);
 		return conn;
 	}
