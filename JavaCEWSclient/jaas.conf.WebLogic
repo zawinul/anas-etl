@@ -1,0 +1,23 @@
+
+FileNetP8 {
+    weblogic.security.auth.login.UsernamePasswordLoginModule required authOnLogin=true;
+};
+
+FileNetP8WSI {
+    com.filenet.api.util.WSILoginModule required;
+};
+
+Navigator {
+    weblogic.security.auth.login.UsernamePasswordLoginModule required authOnLogin=true;
+};
+
+
+FileNetP8Engine {
+    weblogic.security.auth.login.UsernamePasswordLoginModule required authOnLogin=true;
+};
+
+FileNetP8Server {
+    weblogic.security.auth.login.UsernamePasswordLoginModule required authOnLogin=true;
+};
+
+

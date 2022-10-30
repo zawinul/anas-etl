@@ -1,0 +1,26 @@
+
+FileNetP8 {
+    com.filenet.api.authentication.jboss.login.FnClientLoginModule required debug=false;
+};
+
+FileNetP8WSI {
+    com.filenet.api.util.WSILoginModule required;
+};
+
+Navigator {
+    com.filenet.api.authentication.jboss.login.FnClientLoginModule required debug=false;
+};
+
+
+FileNetP8Engine {
+    com.filenet.api.authentication.jboss.login.FnClientLoginModule required;
+};
+
+FileNetP8Server {
+    com.filenet.api.authentication.jboss.login.FnClientLoginModule required;
+};
+
+FileNetP8KerberosService {
+    com.filenet.api.authentication.jboss.login.FnClientLoginModule required;
+};
+

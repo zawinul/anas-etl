@@ -24,7 +24,7 @@ public class ResultSetToJson {
 		  .mapToObj(i -> {
 		      try {
 		          return md.getColumnName(i + 1);
-		      } catch (SQLException e) {
+		      } catch (Exception e) {
 		          e.printStackTrace();
 		          return "?";
 		      }

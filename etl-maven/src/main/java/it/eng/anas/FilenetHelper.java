@@ -21,6 +21,7 @@ import com.filenet.api.collection.PageIterator;
 import com.filenet.api.collection.StringList;
 import com.filenet.api.constants.FilteredPropertyType;
 import com.filenet.api.core.Connection;
+import com.filenet.api.core.Domain;
 import com.filenet.api.core.Factory;
 import com.filenet.api.core.Folder;
 import com.filenet.api.core.ObjectStore;
@@ -46,25 +47,25 @@ import it.eng.anas.model.Config;
 import it.eng.anas.model.Model;
 
 public class FilenetHelper {
-	private Subject subject=null;
-	private Connection connection=null;
-	//private ObjectStore os=null;
+	protected Subject subject=null;
+	protected Connection connection=null;
+	protected ObjectStore os=null;
 
-	private ObjectMapper mapper = Utils.getMapper();
-	private static Logger logger = LoggerFactory.getLogger("filenet");
+	protected ObjectMapper mapper = Utils.getMapper();
+	protected static Logger logger = LoggerFactory.getLogger("filenet");
 
-	public void initFilenetAuthentication(){
-	    try {
-	    	Config c = Utils.getConfig();
-	    	connection = Factory.Connection.getConnection(c.filenet.uri);
-	    	subject = UserContext.createSubject(connection, 
-	    			c.filenet.userid, 
-	    			c.filenet.password, 
-	    			c.filenet.stanza);
-	    } catch (EngineRuntimeException e) {
-	    	logger.error("Unable to authenticated at context ");
-	    	throw e;
-	    }
+	public void initFilenetAuthentication() throws Exception{
+    	Config c = Utils.getConfig();
+    	connection = Factory.Connection.getConnection(c.filenet.uri);
+    	subject = UserContext.createSubject(connection, 
+    			c.filenet.userid, 
+    			c.filenet.password, 
+    			c.filenet.stanza);
+    	UserContext uc = UserContext.get();
+    	uc.pushSubject(subject);
+    	Domain domain = Factory.Domain.fetchInstance(connection,null, null);
+           
+        os = Factory.ObjectStore.fetchInstance(domain, c.filenet.objectstore,null);
 	 }
 	
 	

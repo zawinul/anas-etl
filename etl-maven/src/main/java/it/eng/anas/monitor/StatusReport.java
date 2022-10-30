@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.protobuf.Internal.ListAdapter;
 
 import it.eng.anas.Utils;
+import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.ResultSetToJson;
 import it.eng.anas.etl.AnasEtlWorker;
 import it.eng.anas.etl.DBConsumeWorker;
@@ -61,6 +62,7 @@ public class StatusReport {
 		mapper.registerModule(module);
 			
 		ObjectNode main = mapper.createObjectNode();
+		main.put("openConnections",  DBConnectionFactory.nopen);
 		if (ThreadManager.mainThreadManager!=null) {
 			main.put("forcedNumberOfThreads", ThreadManager.mainThreadManager.forcedNumberOfThreads);
 			main.set("workers", mapper.valueToTree(ThreadManager.mainThreadManager.threads));

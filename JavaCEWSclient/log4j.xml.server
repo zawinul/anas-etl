@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<!-- Set debug="true" to enable log4j internal logging. -->
+<log4j:configuration debug="false" xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+    <appender name="FileNetNullAppender" class="org.apache.log4j.varia.NullAppender">
+    </appender>
+
+    <appender name="FileNetConsoleAppender" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %5p [%t] - %m\r\n"/>
+        </layout>
+    </appender>
+
+    <appender name="FileNetErrorAppender" class="org.apache.log4j.FileAppender">
+        <param name="File" value="/p8_server_error.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %5p [%t] - %m\r\n"/>
+        </layout>
+    </appender>
+
+    <appender name="FileNetTraceAppender" class="org.apache.log4j.FileAppender">
+        <param name="File" value="/p8_server_trace.log"/>
+        <!--
+		# This is the layout that the TraceLoggingConfiguration framework uses.  To use this layout
+		# in a manual log4j configuration (while using skipTLC=true for example), jace.jar
+		# must be present in the startup classpath.
+        -->
+        <!-- layout class="com.filenet.apiimpl.util.TraceLayout"/ -->
+        <!-- Comment out the following if using the FileNet TraceLayout -->
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %5p [%t] - %m\r\n"/>
+        </layout>
+    </appender>
+
+    <appender name="FileNetErrorRollingAppender" class="org.apache.log4j.RollingFileAppender">
+        <param name="File" value="/p8_server_error.log"/>
+        <param name="Threshold" value="error"/>
+        <param name="MaxFileSize" value="100MB"/>
+        <param name="MaxBackupIndex" value="5"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %5p [%t] - %m\r\n"/>
+        </layout>
+    </appender>
+
+    <appender name="FileNetTraceRollingAppender" class="org.apache.log4j.RollingFileAppender">
+        <param name="File" value="/p8_server_trace.log"/>
+        <param name="MaxFileSize" value="100MB"/>
+        <param name="MaxBackupIndex" value="5"/>
+        <!--
+		# This is the layout that the TraceLoggingConfiguration framework uses.  To use this layout
+		# in a manual log4j configuration (while using skipTLC=true for example), jace.jar
+		# must be present in the startup classpath.
+        -->
+        <!-- layout class="com.filenet.apiimpl.util.TraceLayout"/ -->
+        <!-- Comment out the following if using the FileNet TraceLayout -->
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %5p [%t] - %m\r\n"/>
+        </layout>
+    </appender>
+
+
+    <!-- 
+    #######################################################################
+    # Error Loggers:
+    #
+    # Set log level to either one of off/fatal/error/warn/info
+    # Child logger's value overwrites parent logger's one.
+    # If a logger is not specified, it inherents value from its parent logger.
+    # By default, error logging is set to level info.
+    # Uncomment certain line to configure for corresponding sub system.  Appropriate
+    # values for level are info, warn (for WARNING), or error.
+    ######################################################################## -->
+    <logger name="filenet_error">
+        <level value="info"/>
+        <appender-ref ref="FileNetConsoleAppender"/>
+        <appender-ref ref="FileNetErrorRollingAppender"/>
+        <appender-ref ref="FileNetTraceRollingAppender"/>
+    </logger>
+
+    <!-- SubSystem: wsi -->
+    <!-- logger name="filenet_error.wsi">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: ejb -->
+    <!-- logger name="filenet_error.ejb">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: engine -->
+    <!-- logger name="filenet_error.engine">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: content_storage -->
+    <!-- logger name="filenet_error.content_storage">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: events -->
+    <!-- logger name="filenet_error.events">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: asynchronous_processing -->
+    <!-- logger name="filenet_error.asynchronous_processing">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: cfs_daemon -->
+    <!-- logger name="filenet_error.cfs_daemon">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: ssi -->
+    <!-- logger name="filenet_error.ssi">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: api -->
+    <!-- logger name="filenet_error.api">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: security -->
+    <!-- logger name="filenet_error.security">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: fixed_content_provider -->
+    <!-- logger name="filenet_error.fixed_content_provider">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: content_cache -->
+    <!-- logger name="filenet_error.content_cache">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: metadata_cache -->
+    <!-- logger name="filenet_error.metadata_cache">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: cbr -->
+    <!-- logger name="filenet_error.cbr">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: search -->
+    <!-- logger name="filenet_error.search">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: database -->
+    <!-- logger name="filenet_error.database">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: gcd -->
+    <!-- logger name="filenet_error.gcd">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: publish -->
+    <!-- logger name="filenet_error.publish">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: code_module -->
+    <!-- logger name="filenet_error.code_module">  <level value="warn"/>  </logger -->
+
+    <!-- SubSystem: error -->
+    <!-- logger name="filenet_error.error">  <level value="warn"/>  </logger -->
+
+    <!-- 
+    #######################################################################
+    # Trace loggers:
+    #
+    # Setting log level to "off" will turn off the trace logging.
+    # Setting log level to "debug" will turn on the trace logging.
+    #
+    # Child logger's value overwrites parent logger's one.
+    # If a logger is not specified, it inherents its value from its parent logger.
+    # By default, trace logging is off. 
+    #
+	# The general message trace logging has a hierarchy of three detail levels represented with
+	# hierarchical logger names:
+	#    ...detail.moderate.summary  - Enables a summary level of tracing
+	#    ...detail.moderate          - Enables a moderate level of tracing
+	#    ...detail                   - Enables the most detailed level of tracing
+	#
+    # Uncomment corresponding lines to turn tracing on.  To enable trace logging
+    # for all subsystems and all flags, set the level of the filenet_tracing
+    # logger to debug.
+    #
+	# Here are the trace flags used for each sub system.  For message tracing, enable the line
+	# corresponding to the desired detail level.
+	#    log4j.logger.filenet_tracing.<SubSystem>.timer                   = debug
+	#    log4j.logger.filenet_tracing.<SubSystem>.detail.moderate.summary = debug
+	#    log4j.logger.filenet_tracing.<SubSystem>.detail.moderate         = debug
+	#    log4j.logger.filenet_tracing.<SubSystem>.detail                  = debug
+	#
+    # For example:
+    #    log4j.logger.filenet_tracing.engine.detail.moderate = debug
+    #
+    # NOTE: These entries are used only if -DskipTLC=true has been specified as
+    #       a JVM argument.
+    ######################################################################## -->
+    <!-- By default, trace logging is turned off -->
+    <logger name="filenet_tracing">
+        <level value="off"/>
+        <appender-ref ref="FileNetTraceRollingAppender"/>
+    </logger>
+
+    <!-- SubSystem: wsi -->
+    <!-- logger name="filenet_tracing.wsi">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.wsi.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.wsi.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.wsi.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.wsi.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: ejb -->
+    <!-- logger name="filenet_tracing.ejb">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.ejb.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.ejb.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.ejb.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.ejb.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: api -->
+    <!-- logger name="filenet_tracing.api">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.api.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.api.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.api.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.api.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: engine -->
+    <!-- logger name="filenet_tracing.engine">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.engine.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.engine.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.engine.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.engine.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: content_storage -->
+    <!-- logger name="filenet_tracing.content_storage">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.content_storage.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.content_storage.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.content_storage.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.content_storage.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: security -->
+    <!-- logger name="filenet_tracing.security">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.security.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.security.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.security.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.security.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: events -->
+    <!-- logger name="filenet_tracing.events">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.events.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.events.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.events.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.events.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: fixed_content_provider -->
+    <!-- logger name="filenet_tracing.fixed_content_provider">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.fixed_content_provider.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.fixed_content_provider.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.fixed_content_provider.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.fixed_content_provider.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: content_cache -->
+    <!-- logger name="filenet_tracing.content_cache">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.content_cache.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.content_cache.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.content_cache.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.content_cache.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: asynchronous_processing -->
+    <!-- logger name="filenet_tracing.asynchronous_processing">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.asynchronous_processing.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.asynchronous_processing.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.asynchronous_processing.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.asynchronous_processing.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: cfs_daemon -->
+    <!-- logger name="filenet_tracing.cfs_daemon">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.cfs_daemon.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.cfs_daemon.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.cfs_daemon.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.cfs_daemon.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: ssi -->
+    <!-- logger name="filenet_tracing.ssi">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.ssi.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.ssi.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.ssi.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.ssi.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: metadata_cache -->
+    <!-- logger name="filenet_tracing.metadata_cache">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.metadata_cache.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.metadata_cache.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.metadata_cache.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.metadata_cache.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: cbr -->
+    <!-- logger name="filenet_tracing.cbr">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.cbr.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.cbr.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.cbr.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.cbr.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: search -->
+    <!-- logger name="filenet_tracing.search">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.search.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.search.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.search.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.search.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: database -->
+    <!-- logger name="filenet_tracing.database">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.database.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.database.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.database.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.database.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: gcd -->
+    <!-- logger name="filenet_tracing.gcd">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.gcd.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.gcd.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.gcd.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.gcd.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: publish -->
+    <!-- logger name="filenet_tracing.publish">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.publish.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.publish.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.publish.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.publish.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: code_module -->
+    <!-- logger name="filenet_tracing.code_module">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.code_module.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.code_module.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.code_module.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.code_module.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- SubSystem: error -->
+    <!-- logger name="filenet_tracing.error">                         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.error.timer">                   <level value="debug"/>  </logger -->
+    <!-- ## Remove the comment corresponding to the desired detail level -->
+    <!-- logger name="filenet_tracing.error.detail.moderate.summary"> <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.error.detail.moderate">         <level value="debug"/>  </logger -->
+    <!-- logger name="filenet_tracing.error.detail">                  <level value="debug"/>  </logger -->
+
+    <!-- 
+    ################################################################################
+    # WSI/Systinet Logger Configuration
+    ################################################################################ 
+    -->
+    <category name="com.systinet.wasp.events" additivity="false">
+        <level value="error"/><appender-ref ref="FileNetErrorRollingAppender"/>
+    </category>
+    <category name="com.systinet.wasp.errors" additivity="false">
+        <level value="error"/><appender-ref ref="FileNetErrorRollingAppender"/>
+    </category>
+    <category name="com.systinet.wasp.services">
+        <level value="error"/><appender-ref ref="FileNetErrorRollingAppender"/>
+    </category>
+
+
+    <!-- Root logger (Must go last) -->
+    <root>
+        <level value="off"/>
+        <appender-ref ref="FileNetNullAppender"/>
+    </root>
+
+</log4j:configuration>

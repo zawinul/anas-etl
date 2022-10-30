@@ -112,25 +112,18 @@ public class DBConsumeWorker extends Worker {
 	public void close()  {
 		if (!closed) {
 			log("DBConsumeWorker close");
-			try {
-				if (connection!=null)
-					connection.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+			if (connection!=null)
+				DBConnectionFactory.close(connection);
+			connection = null;
 			closed = true;
 		}
 	}	
 	
 	private void clean()  {
 		log("DBConsumerWorker clean");
-		try {
-			if (connection!=null)
-				if (!connection.isClosed()) 
-					connection.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		if (connection!=null)
+			DBConnectionFactory.close(connection);
+		connection = null;
 	}
 
 }

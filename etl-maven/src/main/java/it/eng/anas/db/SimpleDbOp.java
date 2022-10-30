@@ -124,7 +124,7 @@ public class SimpleDbOp implements Cleanable {
 			if (ob != null && ob instanceof Connection) {
 				String shortsql = sql.length()>50 ? sql.substring(0,50)+"..." : sql;
 				Log.db.log("chiudo la connection "+ob +" "+ shortsql);
-				try{ ((Connection) ob).close();}catch(Exception e){}
+				DBConnectionFactory.close((Connection) ob);
 			}
 		}
 

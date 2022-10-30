@@ -139,7 +139,7 @@ public class AnasEtlJobProcessor  {
 	}
 	
 	private void getDocContent(DBJob job) {
-		Utils.sleep(10000);
+		Utils.randomSleep(1000,3000);
 		String className = job.par1, dbsId=job.par2, docId=job.par3, path=job.extra;
 		fileHelper.saveJsonObject(path+"/"+docId+".bin", job);
 	}
@@ -159,7 +159,7 @@ public class AnasEtlJobProcessor  {
 					-1, //parentJob,
 					null // extra
 			);
-			connection.close();
+			DBConnectionFactory.close(connection);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

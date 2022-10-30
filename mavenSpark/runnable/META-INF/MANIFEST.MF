@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Main-Class: org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader
+Rsrc-Class-Path: ./ jace-5.2.jar jace-5.2_2.jar jackson-databind-2.13.4.
+ jar jackson-annotations-2.13.4.jar jackson-core-2.13.4.jar slf4j-api-2.
+ 0.3.jar log4j-core-2.19.0.jar log4j-api-2.19.0.jar spark-core-2.9.4.jar
+  jetty-server-9.4.48.v20220622.jar javax.servlet-api-3.1.0.jar jetty-ht
+ tp-9.4.48.v20220622.jar jetty-util-9.4.48.v20220622.jar jetty-io-9.4.48
+ .v20220622.jar jetty-webapp-9.4.48.v20220622.jar jetty-xml-9.4.48.v2022
+ 0622.jar jetty-servlet-9.4.48.v20220622.jar jetty-security-9.4.48.v2022
+ 0622.jar jetty-util-ajax-9.4.48.v20220622.jar websocket-server-9.4.48.v
+ 20220622.jar websocket-common-9.4.48.v20220622.jar websocket-client-9.4
+ .48.v20220622.jar jetty-client-9.4.48.v20220622.jar websocket-servlet-9
+ .4.48.v20220622.jar websocket-api-9.4.48.v20220622.jar commons-io-2.11.
+ 0.jar mysql-connector-java-8.0.30.jar protobuf-java-3.19.4.jar log4j-1.
+ 2.17.jar
+Rsrc-Main-Class: it.eng.anas.main.Main
+Class-Path: .
+

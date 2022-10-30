@@ -17,6 +17,7 @@ public class Config extends Model {
 		public String userid = "";
 		public String password = "";
 		public String uri = "";
+		public String objectstore = "";
 		public String stanza = "";
 	}
 

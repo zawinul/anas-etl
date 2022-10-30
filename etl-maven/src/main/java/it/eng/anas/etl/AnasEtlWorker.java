@@ -48,7 +48,7 @@ public class AnasEtlWorker extends DBConsumeWorker implements Cleanable {
 		Log.db.log("cleaning AnasEtlWorker "+tag+" conn="+connection);
 		try {
 			if (connection!=null && !connection.isClosed())
-				connection.close();
+				DBConnectionFactory.close(connection);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}		

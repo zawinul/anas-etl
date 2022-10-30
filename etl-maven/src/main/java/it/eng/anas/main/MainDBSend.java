@@ -26,7 +26,7 @@ public class MainDBSend {
 					null // extra
 			);
 		}
-		con.close();
+		DBConnectionFactory.close(con);
 		System.out.println("ok");
 	}
 

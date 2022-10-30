@@ -18,7 +18,7 @@ public class DbJobManager {
 		try {
 			connection.setAutoCommit(false);
 			transactionManager = new DBTransactionManager(connection);
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

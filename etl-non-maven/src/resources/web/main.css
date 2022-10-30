@@ -1,0 +1,52 @@
+* {
+	font-family: calibri;
+	color: #606060;
+}
+
+.job-desc {
+    width: 10000px;
+    overflow: hidden;
+    height: 16px;
+    padding: 0;
+    font-size: .85em;
+}
+
+.box {
+    border: 1px solid gray;
+    padding: 3px;
+    margin-top: 3px;
+}
+
+.buttons {
+	overflow: hidden;
+}
+
+.buttons button {
+	float: left;
+	margin-right: 4px;
+}
+
+
+.buttons button.refresh {
+	float: right;
+}
+
+.insert-job {
+	width:100%;
+	height: 100%;
+	background-color: #f8f8ff;
+	padding: 20px;
+	overflow: hidden;
+}
+
+.insert-job .label {
+	width: 100px;
+	float:left;
+	clear:left;
+}
+
+.insert-job .fimput {
+	width: 500px;
+	float:left;
+	clear:right;
+}

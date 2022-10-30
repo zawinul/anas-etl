@@ -25,7 +25,7 @@ public class Utils {
 	public static void sleep(int ms) {
 		try {
 			Thread.sleep(ms);
-		} catch (InterruptedException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -114,6 +114,8 @@ public class Utils {
 				jsonCfg = json;
 				Log.main.log("Config changed: "+json);
 				cfg = getMapper().readValue(json, Config.class);
+				cfg.filenet.password = IOUtils.toString(new FileReader("./password.filenet"));
+				cfg.db.password = IOUtils.toString(new FileReader("./password.db"));
 				Event.emit("config-change");
 			}
 		} catch (Exception e) {

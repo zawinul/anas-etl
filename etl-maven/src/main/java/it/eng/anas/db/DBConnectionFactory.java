@@ -7,6 +7,7 @@ import it.eng.anas.Utils;
 import it.eng.anas.model.Config;
 
 public class DBConnectionFactory {
+	public static int nopen=0;
 	
 	public DBConnectionFactory(String url, String user, String password) {
 		this.url = url;
@@ -32,6 +33,29 @@ public class DBConnectionFactory {
 		String driverClass = Utils.getConfig().db.driverClass;
 		Class.forName(driverClass);
 		Connection conn = DriverManager.getConnection(url, user, password);
+		nopen++;
 		return conn;
+	}
+	
+	public static void close(Connection c) {
+		if (c==null)
+			return;
+		try {
+			if(c.isClosed())
+				return;
+		}catch(Exception e) {
+			e.printStackTrace();
+			return;
+		}
+		
+		try {
+			c.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			nopen--;
+		}
 	}
 }

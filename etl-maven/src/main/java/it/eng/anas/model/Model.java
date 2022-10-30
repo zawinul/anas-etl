@@ -11,7 +11,7 @@ public abstract class Model {
 	public String toString() {
 		try {
 			return oneLineMapper.writeValueAsString(this);
-		} catch (JsonProcessingException e) {
+		} catch (Exception e) {
 			System.out.println("model to string error: "+e.getMessage());
 			return super.toString();
 		}
