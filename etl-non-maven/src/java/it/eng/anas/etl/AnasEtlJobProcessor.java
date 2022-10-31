@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.filenet.api.collection.ClassDescriptionSet;
@@ -16,7 +15,6 @@ import com.filenet.api.meta.PropertyDescription;
 
 import it.eng.anas.FileHelper;
 import it.eng.anas.FilenetHelper;
-import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.DbJobManager;
@@ -57,7 +55,6 @@ public class AnasEtlJobProcessor  {
 			getClassStruct(job);
 		
 		else {
-			caller.getJobManager().nack(job);
 			throw new Exception("operation non riconosciuta: "+job.operation+", job="+Utils.getMapperOneLine().writeValueAsString(job));
 		}
 		
@@ -96,7 +93,7 @@ public class AnasEtlJobProcessor  {
 	
 	
 	private void getDbsMd(DBJob job)  throws Exception {
-		String parenbtPath = job.par1;
+		//String parentPath = job.par1;
 		String path = job.par2;
 		
 		ObjectNode node = caller.getFilenetHelper().getFolderMetadata(path);
@@ -135,7 +132,8 @@ public class AnasEtlJobProcessor  {
 	}
 	
 	private void getFolderMd(DBJob job)  throws Exception {
-		String parentPath = job.par1, path=job.par2;
+		//String parentPath = job.par1;
+		String path=job.par2;
 		FilenetHelper fnet = caller.getFilenetHelper();
 		ObjectNode metadata = fnet.getFolderMetadata(path);
 		fileHelper.saveJsonObject(path+"/folder-metadata.json", metadata);
@@ -167,7 +165,7 @@ public class AnasEtlJobProcessor  {
 		String parentPath = job.par1, path=job.par2, docId=job.par3;
 		FilenetHelper fnet = caller.getFilenetHelper();
 		ObjectNode metadata = fnet.getDocumentMetadata(docId);
-		fileHelper.saveJsonObject(path+"/"+docId, metadata);
+		fileHelper.saveJsonObject(path+"/"+docId+".json", metadata);
 	}
 
 	@SuppressWarnings("unused")

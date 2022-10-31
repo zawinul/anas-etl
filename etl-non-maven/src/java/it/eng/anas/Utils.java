@@ -1,6 +1,8 @@
 package it.eng.anas;
 
 import java.io.FileReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -61,6 +63,15 @@ public class Utils {
 		return mapper;
 	}
 
+	public static String getStackTrace(Exception e) {
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw, true);
+		e.printStackTrace(pw);
+		pw.close();
+		String s = sw.getBuffer().toString();
+		return e.getMessage()+"\n"+s;
+	}
+	
 	public static ObjectMapper getMapperOneLine() {
 		ObjectMapper mapper = new ObjectMapper()
 				.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)

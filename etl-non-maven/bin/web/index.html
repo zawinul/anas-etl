@@ -14,13 +14,16 @@
 	<h1 class="titolo">Monitoring</h1> 
 	<div class="main">
 		<div class="buttons box">
-			<button class="set-n">set # workers</button>
-			<button class="ins-job">insert job</button>
-			<button class="exit">exit</button>
-			<button class="refresh">refresh</button>
+			<button onClick="setN()">set # workers</button>
+			<button onClick="insertJob()">insert job</button>
+			<button onClick="insertJob()">insert job</button>
+			<button onClick="exit()">exit</button>
+			<button class="refresh" onClick="showReport()" style="float:right">refresh</button>
 		</div>
 		<div class="workers box"></div>
-		<div class="db box"></div>	
+		<div class="db count box"></div>	
+		<div class="db operation box"></div>	
+		<div class="db status box"></div>	
 		<div class="connections box"></div>	
 	</div>
 	<div class="insert-job">

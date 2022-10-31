@@ -1,0 +1,1 @@
+insert into jobid_sequence (id) values(1000)

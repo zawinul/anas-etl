@@ -3,10 +3,6 @@ function init(){
 	console.log('started v4');
 	showReport();
 	reportInterval = setInterval(showReport, 5000);
-	$('.exit').click(exit);
-	$('.set-n').click(setN);
-	$('.refresh').click(showReport);
-	$('.ins-job').click(insertJob);
 	var insjob = $('.insert-job');
 	$('.ok', insjob).click(()=>insjob.data('onOk')());
 	$('.cancel', insjob).click(()=>insjob.data('onCancel')());
@@ -17,30 +13,33 @@ var data;
 async function showReport() {
 	var txt = await $.get('../report').promise();
 	data=JSON.parse(txt);
-	var jobdescs = data.workers.map(x=>x.jobDescription);
-	console.log(jobdescs);
 	$('.job-desc').remove();
-	for(var i=0; i<jobdescs.length; i++) {
-		let d = jobdescs[i];
-		$('<div/>').addClass('job-desc').text(i+' - '+JSON.stringify(d)).appendTo('.workers');
+	for(var i=0; i<data.workers.length; i++) {
+		let d = data.workers[i];
+		let div = $('<div/>').addClass('job-desc').appendTo('.workers');
+		$(`
+<div class="i">${i}</div>
+<div class="tag">${d.tag}</div>
+<div class="queue">${d.job ? d.job.queue:'-'}</div>
+<div class="operation">${d.job ? d.job.operation:'-'}</div>
+<div class="status">${d.status}</div>
+		`).appendTo(div)
 	}
 
 	$('.db').empty();
 	var nitems = "#job="+ data.job[0].count
 		+ ", #done="+data.done[0].count
-		+ ", #error"+ data.error[0].count;
+		+ ", #error="+ data.error[0].count;
 	
-	$('<div class="n-items"/>').text(nitems).appendTo('.db');
+	$('<div class="n-items"/>').text(nitems).appendTo('.db.count');
 
-	$('<div class="operations"/>').appendTo('.db');
 	data.operation
 		.map(x=>x.operation+": "+x.count)
-		.map(txt=>$('<div/>').text(txt).appendTo('.operations'));
+		.map(txt=>$('<div/>').text(txt).appendTo('.db.operation'));
 		
-	$('<div class="status"/>').appendTo('.db');
 	data.status
 		.map(x=>x.queue+':'+x.status+": "+x.count)
-		.map(txt=>$('<div/>').text(txt).appendTo('.status'));
+		.map(txt=>$('<div/>').text(txt).appendTo('.db.status'));
 		
 	$('.connections').empty();
 	data.connections.map(txt=>$('<div/>').text(txt).appendTo('.connections'))

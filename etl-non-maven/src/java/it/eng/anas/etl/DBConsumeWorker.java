@@ -38,48 +38,47 @@ public class DBConsumeWorker extends Worker {
 		log("start");
 		mapper = Utils.getMapper();
 		while(true) {
-			if (exitRequest)
-				break;
-			boolean d = singleStep();
-			if (!d) {
-				// probabilmente sono finiti i dati in coda
-				// aspettiamo un po' prima di uscire e creare un altro thread
-				Utils.longPause();
+			if (exitRequest) {
+				status = "exit request";
 				break;
 			}
+			singleStep();
 		}
 		log("end");
 	}
 
 	public void onJob(DBJob job) throws Exception {
 		log("onJob "+job);
+		status = "on job "+job.id+" "+job.operation;
 		Utils.shortPause();
 	}
 
-	private boolean singleStep()  {
+	private void singleStep()  {
 		DBJob job = jobManager.extract(queueName);
 		currentJob = job;
 		if (job==null) {
+			status = "coda vuota";
+			Utils.longPause();
 			log("Coda vuota: "+queueName);
-			return false;
+			return;
 		}
 
-		log("onMessage|"+job.operation);
+		log("onMessage "+job.operation);
 		
 		try {
+			status = "on job "+job.id;
 			onJob(job);
 			log("ok");
-			jobManager.ack(job);
+			jobManager.ack(job, "ok");
 			Utils.shortPause();
 		} 
 		catch (Exception e) {
 			log("error on receive BL: "+e.getMessage());
 			e.printStackTrace();
-			jobManager.nack(job);
+			jobManager.nack(job, Utils.getStackTrace(e));
+			status = e.getMessage();
 			Utils.shortPause();
 		}
-		return true;
-		
 	}
 
 	public void close() {

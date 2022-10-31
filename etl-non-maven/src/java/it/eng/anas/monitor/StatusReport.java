@@ -102,6 +102,7 @@ public class StatusReport {
 	        jgen.writeNumberField("priority", value.priority);
 	        jgen.writeStringField("tag", value.tag);
 	        jgen.writeStringField("queue", value.queueName);
+	        jgen.writeStringField("status", value.status);
 	        jgen.writeBooleanField("closed", value.closed);
 	        jgen.writeEndObject();
 	    }

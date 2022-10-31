@@ -1,6 +1,7 @@
 package it.eng.anas;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -13,17 +14,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.filenet.api.collection.ContentElementList;
 import com.filenet.api.collection.DateTimeList;
 import com.filenet.api.collection.DependentObjectList;
 import com.filenet.api.collection.DocumentSet;
 import com.filenet.api.collection.FolderSet;
 import com.filenet.api.collection.IdList;
 import com.filenet.api.collection.IndependentObjectSet;
-import com.filenet.api.collection.PageIterator;
 import com.filenet.api.collection.StringList;
-import com.filenet.api.constants.FilteredPropertyType;
 import com.filenet.api.constants.PropertyNames;
 import com.filenet.api.core.Connection;
+import com.filenet.api.core.ContentTransfer;
 import com.filenet.api.core.Document;
 import com.filenet.api.core.Domain;
 import com.filenet.api.core.Factory;
@@ -44,13 +45,10 @@ import com.filenet.api.property.PropertyIndependentObjectSet;
 import com.filenet.api.property.PropertyInteger32;
 import com.filenet.api.property.PropertyString;
 import com.filenet.api.property.PropertyStringList;
-import com.filenet.api.query.SearchSQL;
-import com.filenet.api.query.SearchScope;
 import com.filenet.api.util.Id;
 import com.filenet.api.util.UserContext;
 
 import it.eng.anas.model.Config;
-import it.eng.anas.model.Model;
 
 public class FilenetHelper {
 	protected Subject subject=null;
@@ -60,6 +58,15 @@ public class FilenetHelper {
 	protected ObjectMapper mapper = Utils.getMapper();
 	protected static Logger logger = LoggerFactory.getLogger("filenet");
 
+	protected static String commonPropertiesExclusion[] = {
+		"FoldersFiledIn",
+		"Containers",
+		"FoldersFiledIn",
+		"Permissions"
+	};
+	protected static String folderPropertiesExclusion[] = {};
+	protected static String documentPropertiesExclusion[] = {};
+	
 	public void initFilenetAuthentication() throws Exception{
     	Config c = Utils.getConfig();
     	connection = Factory.Connection.getConnection(c.filenet.uri);
@@ -86,6 +93,7 @@ public class FilenetHelper {
 		String parentId = parent.get_Id().toString();
 		System.out.println(parentId+" -  "+parentId);
 		FolderSet childFolders = parent.get_SubFolders();
+		@SuppressWarnings("unchecked")
 		Iterator<Folder> iter1 = childFolders.iterator();
 		while(iter1.hasNext()) {
 			Folder child = iter1.next();
@@ -100,15 +108,19 @@ public class FilenetHelper {
 	public ObjectNode  getFolderMetadata(String path) throws Exception {
 		PropertyFilter pf = new PropertyFilter();
 		pf.setMaxRecursion(0);
-//		pf.addIncludeProperty(new FilterElement(0, null, null, PropertyNames. ID, null));
-//		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.NAME, null));
-//		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.PATH_NAME, null));
 		pf.addExcludeProperty(PropertyNames.SUB_FOLDERS);
 		pf.addExcludeProperty(PropertyNames.CONTAINED_DOCUMENTS);
 		pf.addExcludeProperty(PropertyNames.CONTAINEES);
+		
+		for(String p:commonPropertiesExclusion)
+			pf.addExcludeProperty(p);
+		for(String p:folderPropertiesExclusion)
+			pf.addExcludeProperty(p);
+			
 		Folder f = Factory.Folder.fetchInstance(os, path, pf);
 		Properties props = f.getProperties();
 		
+		@SuppressWarnings("unchecked")
 		Iterator<Property> iter1 = props.iterator();
 		ObjectNode ret = mapper.createObjectNode();
 		while(iter1.hasNext()) {
@@ -122,15 +134,40 @@ public class FilenetHelper {
 	public ObjectNode  getDocumentMetadata(String id) throws Exception {
 		PropertyFilter pf = new PropertyFilter();
 		pf.setMaxRecursion(0);
+		for(String p:commonPropertiesExclusion)
+			pf.addExcludeProperty(p);
+		for(String p:documentPropertiesExclusion)
+			pf.addExcludeProperty(p);
+
 		Document doc = Factory.Document.fetchInstance(os, new Id(id), pf);
 		Properties props = doc.getProperties();
 		
+		@SuppressWarnings("unchecked")
 		Iterator<Property> iter1 = props.iterator();
 		ObjectNode ret = mapper.createObjectNode();
 		while(iter1.hasNext()) {
 			Property prop = iter1.next();
 			setJsonPropertyValue(prop, prop.getPropertyName(), ret);
 		}
+
+		ContentElementList clist = doc.get_ContentElements();
+		@SuppressWarnings("unchecked")
+		Iterator<ContentTransfer> cIterator = clist.iterator(); 
+		List<ContentTransfer> contents = getList(cIterator);
+		ObjectMapper mapper = Utils.getMapper();
+		ArrayNode contentArray = mapper.createArrayNode();
+		for(ContentTransfer ct: contents) {
+			HashMap<String, String> map = new HashMap<String, String>();
+			map.put("type",ct.get_ContentType());
+			map.put("retrievalName",ct.get_RetrievalName());
+			Connection conn = ct.getConnection();
+			map.put("connectionType",conn.getConnectionType().toString());
+			map.put("uri",conn.getURI());
+			contentArray.add(mapper.valueToTree(map));
+		} 
+		ret.set("mappedContent", contentArray);
+
+		
 		return ret;
 	}
 
@@ -142,12 +179,38 @@ public class FilenetHelper {
 		Folder f = Factory.Folder.fetchInstance(os, path, pf);
 		DocumentSet s = f.get_ContainedDocuments();
 		List<String> docIds = new ArrayList<String>();
+		@SuppressWarnings("unchecked")
 		Iterator<Document> dociterator = s.iterator();
 		while(dociterator.hasNext()) {
 			Document doc = dociterator.next();
 			docIds.add(doc.get_Id().toString());
 		}
 		return docIds;
+	}
+
+
+	public ArrayNode  getDocumentContent(String docId) throws Exception {
+		PropertyFilter pf = new PropertyFilter();
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.CONTAINED_DOCUMENTS, null));
+		Document doc = Factory.Document.fetchInstance(os, new Id(docId), pf);
+		ContentElementList clist = doc.get_ContentElements();
+		@SuppressWarnings("unchecked")
+		Iterator<ContentTransfer> cIterator = clist.iterator(); 
+		List<ContentTransfer> contents = getList(cIterator);
+		ObjectMapper mapper = Utils.getMapper();
+		ArrayNode ret = mapper.createArrayNode();
+		for(ContentTransfer ct: contents) {
+			HashMap<String, String> map = new HashMap<String, String>();
+			map.put("type",ct.get_ContentType());
+			map.put("retrievalName",ct.get_RetrievalName());
+			Connection conn = ct.getConnection();
+			map.put("connectionType",conn.getConnectionType().toString());
+			map.put("uri",conn.getURI());
+			ret.add(mapper.valueToTree(map));
+		} 
+		return ret;
+		
 	}
 
 	private <T> List<T> getList(Iterator<T> iterator) {
@@ -164,7 +227,6 @@ public class FilenetHelper {
 		pf.addIncludeProperty(new FilterElement(30, null, null, PropertyNames.PATH_NAME, null));
 		pf.addIncludeProperty(new FilterElement(30, null, null, PropertyNames.SUB_FOLDERS, null));
 		Folder f = Factory.Folder.fetchInstance(os, path, pf);
-		Properties props = f.getProperties();
 		List<Folder> todo = new ArrayList<Folder>();
 		List<Folder> done = new ArrayList<Folder>();
 		todo.add(f);
@@ -178,6 +240,7 @@ public class FilenetHelper {
 				continue;
 			
 			done.add(cur);
+			@SuppressWarnings("unchecked")
 			List<Folder> sublist = getList(cur.get_SubFolders().iterator());
 			for(Folder sub:sublist)
 				done.add(sub);
@@ -188,76 +251,61 @@ public class FilenetHelper {
 		return ret;
 	}
 
-	public List<String> getFolderIdByClassName(String classeDocumentale,ObjectStore os) throws Exception {
-		String query = "SELECT * FROM "+classeDocumentale;
-		os.refresh();
-		SearchScope scope = new SearchScope(os);
-		SearchSQL sql = new SearchSQL(query);
-		int PAGE_SIZE = 100;
-		IndependentObjectSet docSet = scope.fetchObjects(sql, PAGE_SIZE,null, true);
-
-		ArrayList<String> ret = new ArrayList<String>();
-		PageIterator pageIterator = docSet.pageIterator();
-		while (pageIterator.nextPage()) {
-			for (Object obj : pageIterator.getCurrentPage()) {
-				Folder f = (Folder) obj;
-				ret.add(f.get_Id().toString());
-			}
-		}
-		return ret;
-	}
-	
-	public static class FolderTreeNode extends Model {
-		public String id;
-		public List<FolderTreeNode> child = new ArrayList<FolderTreeNode>();
-		public List<String> doc = new ArrayList<String>();
-	};
-	
-	
-	public FolderTreeNode getFolderTree(String folderId) { 
-		FolderTreeNode ret = new FolderTreeNode();
-		ret.id = folderId;
-		
-		return ret;
-	}
-	
+//	public List<String> getFolderIdByClassName(String classeDocumentale,ObjectStore os) throws Exception {
+//		String query = "SELECT * FROM "+classeDocumentale;
+//		os.refresh();
+//		SearchScope scope = new SearchScope(os);
+//		SearchSQL sql = new SearchSQL(query);
+//		int PAGE_SIZE = 100;
+//		IndependentObjectSet docSet = scope.fetchObjects(sql, PAGE_SIZE,null, true);
+//
+//		ArrayList<String> ret = new ArrayList<String>();
+//		PageIterator pageIterator = docSet.pageIterator();
+//		while (pageIterator.nextPage()) {
+//			for (Object obj : pageIterator.getCurrentPage()) {
+//				Folder f = (Folder) obj;
+//				ret.add(f.get_Id().toString());
+//			}
+//		}
+//		return ret;
+//	}
 	
 
-	public List<Folder> getFolderByClassName(String classeDocumentale,ObjectStore os) throws Exception {
-		String query = "SELECT * FROM "+classeDocumentale;
-		os.refresh();
-		SearchScope scope = new SearchScope(os);
-		SearchSQL sql = new SearchSQL(query);
-		int PAGE_SIZE = 100;
-		// Specify a property filter to use for the filter parameter, if needed.
-		// This can be null if you are not filtering properties.
-		PropertyFilter myFilter = new PropertyFilter();
-		int myFilterLevel = 1;
-		myFilter.setMaxRecursion(myFilterLevel);		
-		myFilter.addIncludeType(new FilterElement(null, null, null, FilteredPropertyType.ANY, null));
-
-		IndependentObjectSet docSet = scope.fetchObjects(sql, PAGE_SIZE, myFilter, true);
-
-		ArrayList<Folder> ret = new ArrayList<Folder>();
-		// Get the page iterator
-		PageIterator pageIterator = docSet.pageIterator();
-		while (pageIterator.nextPage()) {
-			// Loop through each item in the page
-			for (Object obj : pageIterator.getCurrentPage()) {
-				// Get the document object and write Document Title
-				Folder f = (Folder) obj;
-				Properties props = f.getProperties();
-				Iterator iterator = props.iterator();
-				while(iterator.hasNext()) {
-					//Property p = (Property) iterator.next();
-					//String name = p.getPropertyName();
-					
-				}
-				ret.add(f);
-			}
-		}
-		return ret;
-	}
+//	public List<Folder> getFolderByClassName(String classeDocumentale,ObjectStore os) throws Exception {
+//		String query = "SELECT * FROM "+classeDocumentale;
+//		os.refresh();
+//		SearchScope scope = new SearchScope(os);
+//		SearchSQL sql = new SearchSQL(query);
+//		int PAGE_SIZE = 100;
+//		// Specify a property filter to use for the filter parameter, if needed.
+//		// This can be null if you are not filtering properties.
+//		PropertyFilter myFilter = new PropertyFilter();
+//		int myFilterLevel = 1;
+//		myFilter.setMaxRecursion(myFilterLevel);		
+//		myFilter.addIncludeType(new FilterElement(null, null, null, FilteredPropertyType.ANY, null));
+//
+//		IndependentObjectSet docSet = scope.fetchObjects(sql, PAGE_SIZE, myFilter, true);
+//
+//		ArrayList<Folder> ret = new ArrayList<Folder>();
+//		// Get the page iterator
+//		PageIterator pageIterator = docSet.pageIterator();
+//		while (pageIterator.nextPage()) {
+//			// Loop through each item in the page
+//			for (Object obj : pageIterator.getCurrentPage()) {
+//				// Get the document object and write Document Title
+//				Folder f = (Folder) obj;
+//				Properties props = f.getProperties();
+//				Iterator iterator = props.iterator();
+//				while(iterator.hasNext()) {
+//					//Property p = (Property) iterator.next();
+//					//String name = p.getPropertyName();
+//					
+//				}
+//				ret.add(f);
+//			}
+//		}
+//		return ret;
+//	}
 
 	public JsonNode extractProperties(Properties props) {
 		ObjectNode node = mapper.createObjectNode();
@@ -340,7 +388,6 @@ public class FilenetHelper {
 			IndependentObjectSet set = prop.getIndependentObjectSetValue();
 			List<String> array = new ArrayList<String>();
 			Iterator iter = set.iterator();
-			int i=0;
 			while(iter.hasNext()) {
 				String val = toString(iter.next());
 				array.add(val);

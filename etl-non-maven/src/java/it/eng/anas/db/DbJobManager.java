@@ -70,18 +70,18 @@ public class DbJobManager  {
 	}
 	
 
-	public synchronized DBJob ack(DBJob job) {
+	public synchronized DBJob ack(DBJob job, String out) {
 		return transactionManager.execute(new Callable<DBJob>() {
 			public DBJob call() throws Exception {
-				return _ack(job);
+				return _ack(job, out);
 			}
 		});
 	}
 
-	public synchronized DBJob nack(DBJob job) {
+	public synchronized DBJob nack(DBJob job, String out) {
 		return transactionManager.execute(new Callable<DBJob>() {
 			public DBJob call() throws Exception {
-				return _nack(job);
+				return _nack(job, out);
 			}
 		});
 	}
@@ -161,7 +161,7 @@ public class DbJobManager  {
 		return ret;
 	}
 	
-	private DBJob _ack(DBJob job)  {
+	private DBJob _ack(DBJob job, String out)  {
 		job.status = DBJob.Status.done;
 		updateTiming(job);
 		insert(job, "job_done");
@@ -175,7 +175,7 @@ public class DbJobManager  {
 	}
 
 	
-	private DBJob _nack(DBJob job) {
+	private DBJob _nack(DBJob job, String out) {
 		updateTiming(job);
 		job.nretry++;
 		if (job.nretry<Utils.getConfig().nMaxRetry) {

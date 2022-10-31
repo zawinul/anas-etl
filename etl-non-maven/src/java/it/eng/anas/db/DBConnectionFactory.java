@@ -3,8 +3,6 @@ package it.eng.anas.db;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
 
 import it.eng.anas.Utils;
 import it.eng.anas.model.Config;
@@ -84,10 +82,10 @@ public class DBConnectionFactory {
 		return map.values().toArray(new String[0]);
 	}
 	
-	private static void showMap() {
-		int i=0;
-		for(Entry<Connection, String> entry: map.entrySet()) {
-			System.out.println("\tdbconn "+(i++)+" "+entry.getValue());
-		}
-	}
+//	private static void showMap() {
+//		int i=0;
+//		for(Entry<Connection, String> entry: map.entrySet()) {
+//			System.out.println("\tdbconn "+(i++)+" "+entry.getValue());
+//		}
+//	}
 }

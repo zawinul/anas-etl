@@ -3,13 +3,6 @@
 	color: #606060;
 }
 
-.job-desc {
-    width: 10000px;
-    overflow: hidden;
-    height: 16px;
-    padding: 0;
-    font-size: .85em;
-}
 
 .box {
     border: 1px solid gray;
@@ -24,11 +17,6 @@
 .buttons button {
 	float: left;
 	margin-right: 4px;
-}
-
-
-.buttons button.refresh {
-	float: right;
 }
 
 .insert-job {
@@ -49,4 +37,16 @@
 	width: 500px;
 	float:left;
 	clear:right;
+}
+
+.job-desc {
+    width: 100%;
+    overflow: hidden;
+    height: 16px;
+    padding: 0;
+    font-size: .85em;
+}
+.job-desc>div{
+	float: left;
+	width: 12.5%;
 }

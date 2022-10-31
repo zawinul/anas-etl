@@ -113,7 +113,7 @@ public class FilenetTest extends FilenetHelper {
 		initFilenetAuthentication();
 		System.out.println(""+os);
 		Folder root = os.get_RootFolder();
-		String rootId = root.get_Id().toString();
+		//String rootId = root.get_Id().toString();
 		System.out.println(root);
 
 		PropertyFilter pf = new PropertyFilter();
@@ -147,7 +147,7 @@ public class FilenetTest extends FilenetHelper {
 		initFilenetAuthentication();
 		System.out.println(""+os);
 		Folder root = os.get_RootFolder();
-		String rootId = root.get_Id().toString();
+		//String rootId = root.get_Id().toString();
 		System.out.println(root);
 
 		PropertyFilter pf = new PropertyFilter();
@@ -156,6 +156,7 @@ public class FilenetTest extends FilenetHelper {
 		pf.addIncludeProperty(new FilterElement(null, null, null, PropertyNames.FOLDER_NAME, null));		
 		pf.addIncludeProperty(new FilterElement(null, null, null, "PathName", null));		
 		ReferentialContainmentRelationshipSet childs =  root.get_Containees();
+		@SuppressWarnings("unchecked")
 		Iterator<ReferentialContainmentRelationship> childIter = childs.iterator();
 		while(childIter.hasNext()) {
 			ReferentialContainmentRelationship element = childIter.next();

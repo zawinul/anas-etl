@@ -1,6 +1,7 @@
 password.db
 password.filenet
 runnable.jar
+JavaCEWSClient/*
 
 .metadata
 *.iml

@@ -10,6 +10,7 @@ public abstract class Worker extends Thread {
 	public boolean exitRequest = false;
 	public List<Runnable> cleanup = new ArrayList<Runnable>();
 	public String curJobDescription = "";
+	public String status = "starting";
 
 	public void log(String x) { 
 		System.out.println(position+":"+tag+":"+x);
@@ -26,12 +27,15 @@ public abstract class Worker extends Thread {
 	@Override
 	public void run() {
 		try {
+			status = "started";
 			execute();
 		}
 		catch(Exception e) {
 			e.printStackTrace();
+			status = e.getMessage();
 		}
 
+		status = "cleanup";
 		for(Runnable c: cleanup) {
 			try {
 				if (c!=null)
