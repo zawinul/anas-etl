@@ -3,22 +3,23 @@ package it.eng.anas.threads;
 import java.util.ArrayList;
 import java.util.List;
 
+import it.eng.anas.Log;
+
 public abstract class Worker extends Thread {
 	public String tag;
 	public int priority;
 	public int position;
 	public boolean exitRequest = false;
 	public List<Runnable> cleanup = new ArrayList<Runnable>();
-	public String curJobDescription = "";
 	public String status = "starting";
 
 	public void log(String x) { 
-		System.out.println(position+":"+tag+":"+x);
+		Log.etl.log(tag+":"+x);
 	}
 	
 
 	public Worker(String tag, int priority) {
-		super();
+		super(tag);
 		this.tag = tag;
 		this.priority = priority;
 	}
@@ -45,11 +46,9 @@ public abstract class Worker extends Thread {
 				e.printStackTrace();
 			}
 		}
+		status = "after cleanup, exit";
 	}
 	
 	public abstract void execute() throws Exception;
 
-	public void close() {
-		
-	}
 }

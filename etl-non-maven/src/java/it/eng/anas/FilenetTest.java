@@ -13,6 +13,7 @@ import com.filenet.api.collection.ReferentialContainmentRelationshipSet;
 import com.filenet.api.constants.PropertyNames;
 import com.filenet.api.core.Factory;
 import com.filenet.api.core.Folder;
+import com.filenet.api.core.ObjectStore;
 import com.filenet.api.core.ReferentialContainmentRelationship;
 import com.filenet.api.meta.ClassDescription;
 import com.filenet.api.meta.PropertyDescription;
@@ -26,17 +27,24 @@ public class FilenetTest extends FilenetHelper {
 // http://p8programmer.blogspot.com/2017/05/sample-java-code-to-set-folder.html
 // https://www.notonlyanecmplace.com/understand-the-filenet-property-filters/
 	
-	public void test1() throws Exception{
+	private ObjectStore _os;
+	private ObjectStore getOS() throws Exception{
+		if (_os!=null)
+			return _os;
 		initFilenetAuthentication();
-		System.out.println(""+os);
-		Folder root = os.get_RootFolder();
+		FilenetHelper fn = new FilenetHelper();
+		_os = fn.getOS("DIOS");
+		return _os;
+	}
+	
+	public void test1() throws Exception{
+		Folder root = getOS().get_RootFolder();
 		//dumpFolder(root);
 		folderTree(root, "");
 	}
 	
 	public void test2() throws Exception {
-		initFilenetAuthentication();
-		System.out.println(""+os);
+		ObjectStore os = getOS();
 		PropertyFilter pf = new PropertyFilter();
 		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.SUB_FOLDERS, null));
 		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.FOLDER_NAME, null));		
@@ -53,23 +61,9 @@ public class FilenetTest extends FilenetHelper {
 		System.out.println("ok");
 	}
 	
-	public void test3() throws Exception {
-		initFilenetAuthentication();
-		System.out.println(""+os);
-		folderTree("/", ""); 
-//		FolderSet sfs = f.get_SubFolders();
-//		Iterator<Folder> it = sfs.iterator();
-//		Folder sf;
-//		while (it.hasNext()) {
-//		    sf = it.next();
-//		    System.out.println(sf.get_PathName());
-//		}
-		System.out.println("ok");
-	}
 	
 	public void test4() throws Exception {
-		initFilenetAuthentication();
-		System.out.println(""+os);
+		ObjectStore os = getOS();
 		ClassDescriptionSet cds = os.get_ClassDescriptions();
 		PageIterator pi = cds.pageIterator();
 		HashMap<String,Object> mainlist = new HashMap<String,Object>();
@@ -110,8 +104,7 @@ public class FilenetTest extends FilenetHelper {
 
 	
 	public void test5() throws Exception {
-		initFilenetAuthentication();
-		System.out.println(""+os);
+		ObjectStore os = getOS();
 		Folder root = os.get_RootFolder();
 		//String rootId = root.get_Id().toString();
 		System.out.println(root);
@@ -144,8 +137,7 @@ public class FilenetTest extends FilenetHelper {
 
 	
 	public void test6() throws Exception {
-		initFilenetAuthentication();
-		System.out.println(""+os);
+		ObjectStore os = getOS();
 		Folder root = os.get_RootFolder();
 		//String rootId = root.get_Id().toString();
 		System.out.println(root);
@@ -165,13 +157,8 @@ public class FilenetTest extends FilenetHelper {
 		}
 	}
 	
-	public void test7() throws Exception {
-		initFilenetAuthentication();
-		getDBSList("/");
-	}
-
-	
 	public void folderTree(String path, String tab) throws Exception {
+		ObjectStore os = getOS();
 		PropertyFilter pf = new PropertyFilter();
 		pf.addIncludeProperty(new FilterElement(null, null, null, PropertyNames.ID, null));
 		pf.addIncludeProperty(new FilterElement(null, null, null, PropertyNames.SUB_FOLDERS, null));
@@ -206,7 +193,7 @@ public class FilenetTest extends FilenetHelper {
 	}
 	
 	public static void main(String args[])throws Exception {
-		new FilenetTest().test7();
+		new FilenetTest().test6();
 		
 		Event.emit("exit");
 		System.out.println("done!");

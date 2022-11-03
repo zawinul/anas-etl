@@ -1,13 +1,18 @@
 * {
 	font-family: calibri;
+	font-size: 10pt;
 	color: #606060;
 }
 
+body {
+	background-color: #fafafa;
+}
 
 .box {
-    border: 1px solid gray;
-    padding: 3px;
-    margin-top: 3px;
+	background-color: #ffffff;
+	border: 1px solid #e0e0e0;
+    padding: 10px;
+    margin-top: -1px;
 }
 
 .buttons {
@@ -39,14 +44,12 @@
 	clear:right;
 }
 
-.job-desc {
-    width: 100%;
-    overflow: hidden;
-    height: 16px;
-    padding: 0;
-    font-size: .85em;
+.workers table  {
+	border-collapse: collapse;
 }
-.job-desc>div{
-	float: left;
-	width: 12.5%;
+
+.workers td {
+	border:1px solid gray;
+	padding: 1px 10px;
+	font-size: .9em;
 }

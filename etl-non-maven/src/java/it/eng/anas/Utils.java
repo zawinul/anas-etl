@@ -24,11 +24,7 @@ public class Utils {
 	}
 	
 	public static void sleep(int ms) {
-		try {
-			_sleep(ms);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		_sleep(ms);
 	}
 	
 	public static void randomSleep(int msMin, int msMax) {
@@ -47,13 +43,17 @@ public class Utils {
 	}
 
 
-	private static void _sleep(int ms) throws Exception {		
+	private static void _sleep(int ms)  {		
 		while(ms>0) {
 			if(exiting)
 				break;
 			int t = ms>1000 ? 1000 : ms;
 			ms -= t;
-			Thread.sleep(t);
+			try {
+				Thread.sleep(t);
+			} catch (InterruptedException e) {
+				//e.printStackTrace();
+			}
 		}
 	}
 
@@ -132,7 +132,7 @@ public class Utils {
 			String json = IOUtils.toString(r);
 			if (!json.equals(jsonCfg)) {
 				jsonCfg = json;
-				Log.main.log("Config changed: "+json);
+				Log.etl.log("Config changed: "+json);
 				cfg = getMapper().readValue(json, Config.class);
 				cfg.filenet.password = IOUtils.toString(new FileReader("./password.filenet"));
 				cfg.db.password = IOUtils.toString(new FileReader("./password.db"));
@@ -155,23 +155,8 @@ public class Utils {
 		});
 		refreshConfigThread = new Thread() {
 			public void run() {
-				while(true) {
-					if (!exiting)
-						break;
-					Utils.sleep(5000);
-
-					if (!exiting)
-						break;
-					Utils.sleep(5000);
-
-					if (!exiting)
-						break;
-					Utils.sleep(5000);
-
-					if (!exiting)
-						break;
-					Utils.sleep(5000);
-
+				while(!exiting) {
+					Utils.sleep(30000);
 					refreshConfig();
 				}
 			}

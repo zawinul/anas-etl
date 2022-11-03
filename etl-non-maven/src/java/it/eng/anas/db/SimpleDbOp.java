@@ -23,7 +23,7 @@ import it.eng.anas.UTF8;
 
 
 
-public class SimpleDbOp implements Cleanable {
+public class SimpleDbOp  {
 	private String sql;
 	private Connection conn = null;
 	private Connection localConnection;
@@ -35,7 +35,8 @@ public class SimpleDbOp implements Cleanable {
 	private int nExecutedUpdate = -1;
 	private static DBConnectionFactory factory = DBConnectionFactory.defaultFactory;
 	
-	
+	public static 	Cleaner cleaner = Cleaner.create();
+ 
 	public static void setConnectionFactory(DBConnectionFactory fact) {
 		factory = fact;
 	}
@@ -63,12 +64,13 @@ public class SimpleDbOp implements Cleanable {
 			return;
 
 		final SimpleDbOp t = this;
-		Cleaner cleaner = Cleaner.create();
-		cleaner.register(this, new Runnable() {
+		@SuppressWarnings("unused")
+		Cleanable c = cleaner.register(this, new Runnable() {
 			public void run() {
-				t.clean();
+				t.cleanup();
 			}
 		});
+		
 	}
 	
 	public SimpleDbOp query(String sql) {
@@ -590,7 +592,7 @@ public class SimpleDbOp implements Cleanable {
 	}
 	
 		
-	public void clean()  {
+	public void cleanup()  {
 		try {
 			if (!closed) {
 				Log.db.warn("SimpleDBOp Finalize: mancata chiamato di close(), sql="+sql);

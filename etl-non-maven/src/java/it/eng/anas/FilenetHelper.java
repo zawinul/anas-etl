@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.security.auth.Subject;
 
@@ -18,10 +19,10 @@ import com.filenet.api.collection.ContentElementList;
 import com.filenet.api.collection.DateTimeList;
 import com.filenet.api.collection.DependentObjectList;
 import com.filenet.api.collection.DocumentSet;
-import com.filenet.api.collection.FolderSet;
 import com.filenet.api.collection.IdList;
 import com.filenet.api.collection.IndependentObjectSet;
 import com.filenet.api.collection.StringList;
+import com.filenet.api.constants.FilteredPropertyType;
 import com.filenet.api.constants.PropertyNames;
 import com.filenet.api.core.Connection;
 import com.filenet.api.core.ContentTransfer;
@@ -47,70 +48,83 @@ import com.filenet.api.property.PropertyString;
 import com.filenet.api.property.PropertyStringList;
 import com.filenet.api.util.Id;
 import com.filenet.api.util.UserContext;
+import com.filenet.apiimpl.core.FolderImpl;
 
 import it.eng.anas.model.Config;
 
 public class FilenetHelper {
 	protected Subject subject=null;
 	protected Connection connection=null;
-	public ObjectStore os=null;
+	protected Domain domain;
+	
+	public Map<String,ObjectStore> osmap=new HashMap<String, ObjectStore>();
 
 	protected ObjectMapper mapper = Utils.getMapper();
+	private boolean authInitialized = false;
+	
 	protected static Logger logger = LoggerFactory.getLogger("filenet");
 
 	protected static String commonPropertiesExclusion[] = {
 		"FoldersFiledIn",
 		"Containers",
 		"FoldersFiledIn",
-		"Permissions"
+		"Permissions",
+		"Parent",
+		"Annotations",
+		"ClassDescription",
+		"This",
+		"WorkflowSubscriptions"
 	};
 	protected static String folderPropertiesExclusion[] = {};
 	protected static String documentPropertiesExclusion[] = {};
 	
 	public void initFilenetAuthentication() throws Exception{
-    	Config c = Utils.getConfig();
+		if (authInitialized)
+			return;
+		
+		Config c = Utils.getConfig();
     	connection = Factory.Connection.getConnection(c.filenet.uri);
+    	
     	subject = UserContext.createSubject(connection, 
     			c.filenet.userid, 
     			c.filenet.password, 
     			c.filenet.stanza);
     	UserContext uc = UserContext.get();
     	uc.pushSubject(subject);
-    	Domain domain = Factory.Domain.fetchInstance(connection,null, null);
-           
-        os = Factory.ObjectStore.fetchInstance(domain, c.filenet.objectstore,null);
+    	domain = Factory.Domain.fetchInstance(connection,null, null);
+    	
+    	authInitialized = true;
 	 }
 	
-
-	public List<String>  getDBSList(String containerPath) throws Exception {
-		List<String> ret = new ArrayList<String>();
-		PropertyFilter pf = new PropertyFilter();
-		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
-		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.NAME, null));
-		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.PATH_NAME, null));
-		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.SUB_FOLDERS, null));
-		Folder parent = Factory.Folder.fetchInstance(os, containerPath, pf);
-		String parentId = parent.get_Id().toString();
-		System.out.println(parentId+" -  "+parentId);
-		FolderSet childFolders = parent.get_SubFolders();
-		@SuppressWarnings("unchecked")
-		Iterator<Folder> iter1 = childFolders.iterator();
-		while(iter1.hasNext()) {
-			Folder child = iter1.next();
-			System.out.println(child.get_Id().toString());
-			System.out.println(child.get_Name());
-			ret.add(child.get_PathName().toString());
-		}
-		return ret;
+	public ObjectStore getOS(String osName) throws Exception {
+		initFilenetAuthentication();
+		if (osmap.containsKey(osName)) 
+			return osmap.get(osName);
+			
+		ObjectStore os = Factory.ObjectStore.fetchInstance(domain, osName,null);
+		if (os!=null)
+			osmap.put(osName,  os);
+		
+		return os;
 	}
 
 
-	public ObjectNode  getFolderMetadata(String path) throws Exception {
+	public ObjectNode  getFolderMetadata(String objectStore, String path, boolean withDocs) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
+
 		PropertyFilter pf = new PropertyFilter();
 		pf.setMaxRecursion(0);
+
+		pf.addIncludeType(new FilterElement(0, null, null, FilteredPropertyType.ANY, null));
+		pf.addIncludeProperty(new FilterElement(2, null, null, PropertyNames.ID, null));
 		pf.addExcludeProperty(PropertyNames.SUB_FOLDERS);
-		pf.addExcludeProperty(PropertyNames.CONTAINED_DOCUMENTS);
-		pf.addExcludeProperty(PropertyNames.CONTAINEES);
+		if (!withDocs) {
+			pf.addExcludeProperty(PropertyNames.CONTAINED_DOCUMENTS);
+			pf.addExcludeProperty(PropertyNames.CONTAINEES);
+		}
 		
 		for(String p:commonPropertiesExclusion)
 			pf.addExcludeProperty(p);
@@ -118,20 +132,30 @@ public class FilenetHelper {
 			pf.addExcludeProperty(p);
 			
 		Folder f = Factory.Folder.fetchInstance(os, path, pf);
-		Properties props = f.getProperties();
-		
-		@SuppressWarnings("unchecked")
-		Iterator<Property> iter1 = props.iterator();
+		FolderImpl fi = (FolderImpl) f;
 		ObjectNode ret = mapper.createObjectNode();
-		while(iter1.hasNext()) {
-			Property prop = iter1.next();
-			setJsonPropertyValue(prop, prop.getPropertyName(), ret);
+		for(Property ap: fi.getPropertiesImpl().toArray()) 
+			setJsonPropertyValue(ap, ap.getPropertyName(), ret);
+		
+		if (withDocs) {
+			DocumentSet ds = f.get_ContainedDocuments();
+			@SuppressWarnings("unchecked")
+			List<Document> docs = getList(ds.iterator());
+			List<String> docIds = new ArrayList<String>();
+			for(Document doc: docs) 
+				docIds.add(doc.get_Id().toString());				
+			
+			ret.set("__documents__", mapper.valueToTree(docIds));
 		}
 		return ret;
 	}
 
 
-	public ObjectNode  getDocumentMetadata(String id) throws Exception {
+	public ObjectNode  getDocumentMetadata(String objectStore, String id) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
 		PropertyFilter pf = new PropertyFilter();
 		pf.setMaxRecursion(0);
 		for(String p:commonPropertiesExclusion)
@@ -172,10 +196,14 @@ public class FilenetHelper {
 	}
 
 
-	public List<String>  getDocumentsId(String path) throws Exception {
+	public List<String>  getDocumentsId(String objectStore, String path) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
 		PropertyFilter pf = new PropertyFilter();
 		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
-		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.CONTAINED_DOCUMENTS, null));
+		pf.addIncludeProperty(new FilterElement(0, null, null, PropertyNames.CONTAINED_DOCUMENTS, null));
 		Folder f = Factory.Folder.fetchInstance(os, path, pf);
 		DocumentSet s = f.get_ContainedDocuments();
 		List<String> docIds = new ArrayList<String>();
@@ -189,7 +217,11 @@ public class FilenetHelper {
 	}
 
 
-	public ArrayNode  getDocumentContent(String docId) throws Exception {
+	public ArrayNode  getDocumentContent(String objectStore, String docId) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
 		PropertyFilter pf = new PropertyFilter();
 		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
 		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.CONTAINED_DOCUMENTS, null));
@@ -213,6 +245,24 @@ public class FilenetHelper {
 		
 	}
 
+	public List<ContentTransfer>  getContentTransfer(String objectStore, String docId) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
+		PropertyFilter pf = new PropertyFilter();
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.CONTENT_ELEMENTS, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.RETRIEVAL_NAME, null));
+		Document doc = Factory.Document.fetchInstance(os, new Id(docId), pf);
+		ContentElementList clist = doc.get_ContentElements();
+		@SuppressWarnings("unchecked")
+		Iterator<ContentTransfer> cIterator = clist.iterator(); 
+		List<ContentTransfer> contents = getList(cIterator);
+		return contents;
+		
+	}
+
 	private <T> List<T> getList(Iterator<T> iterator) {
 		List<T> ret = new ArrayList<>();
 		while(iterator.hasNext()) {
@@ -222,34 +272,57 @@ public class FilenetHelper {
 		return ret;
 	}
 
-	public List<String>  getRecursiveFolders(String path) throws Exception {
+
+	public List<String>  getSubfolders(String objectStore, String path) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
 		PropertyFilter pf = new PropertyFilter();
-		pf.addIncludeProperty(new FilterElement(30, null, null, PropertyNames.PATH_NAME, null));
-		pf.addIncludeProperty(new FilterElement(30, null, null, PropertyNames.SUB_FOLDERS, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.PATH_NAME, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.SUB_FOLDERS, null));
 		Folder f = Factory.Folder.fetchInstance(os, path, pf);
-		List<Folder> todo = new ArrayList<Folder>();
-		List<Folder> done = new ArrayList<Folder>();
-		todo.add(f);
-		
-		while(!todo.isEmpty()) {
-			Folder cur = todo.get(0);
-			Log.fnet.log("tree: "+cur.get_PathName());
-			todo.remove(cur);
-			
-			if (done.contains(cur))
-				continue;
-			
-			done.add(cur);
-			@SuppressWarnings("unchecked")
-			List<Folder> sublist = getList(cur.get_SubFolders().iterator());
-			for(Folder sub:sublist)
-				done.add(sub);
-		}
+		@SuppressWarnings("unchecked")
+		List<Folder> sublist = getList(f.get_SubFolders().iterator());
 		List<String> ret = new ArrayList<String>();
-		for(Folder f2: done)
-			ret.add(f2.get_PathName());
+		for(Folder sub: sublist)
+			ret.add(sub.get_PathName());
 		return ret;
 	}
+
+	
+//	public List<String>  getRecursiveFolders(String objectStore, String path) throws Exception {
+//		ObjectStore os = getOS(objectStore);
+//		if (os==null)
+//			throw new Exception("Non esiste l'ObjectStore "+os);
+//
+//		PropertyFilter pf = new PropertyFilter();
+//		pf.addIncludeProperty(new FilterElement(30, null, null, PropertyNames.PATH_NAME, null));
+//		pf.addIncludeProperty(new FilterElement(30, null, null, PropertyNames.SUB_FOLDERS, null));
+//		Folder f = Factory.Folder.fetchInstance(os, path, pf);
+//		List<Folder> todo = new ArrayList<Folder>();
+//		List<Folder> done = new ArrayList<Folder>();
+//		todo.add(f);
+//		
+//		while(!todo.isEmpty()) {
+//			Folder cur = todo.get(0);
+//			Log.fnet.log("tree: "+cur.get_PathName());
+//			todo.remove(cur);
+//			
+//			if (done.contains(cur))
+//				continue;
+//			
+//			done.add(cur);
+//			@SuppressWarnings("unchecked")
+//			List<Folder> sublist = getList(cur.get_SubFolders().iterator());
+//			for(Folder sub:sublist)
+//				done.add(sub);
+//		}
+//		List<String> ret = new ArrayList<String>();
+//		for(Folder f2: done)
+//			ret.add(f2.get_PathName());
+//		return ret;
+//	}
 
 //	public List<String> getFolderIdByClassName(String classeDocumentale,ObjectStore os) throws Exception {
 //		String query = "SELECT * FROM "+classeDocumentale;

@@ -1,5 +1,7 @@
 package it.eng.anas.etl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import it.eng.anas.FilenetHelper;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
@@ -9,6 +11,7 @@ public class AnasEtlWorker extends DBConsumeWorker  {
 
 	private AnasEtlJobProcessor processor;
 	private FilenetHelper filenet = null;
+	public ObjectMapper mapper = Utils.getMapper();
 	
 	public AnasEtlWorker(String tag, String queueName, int priority) {
 		super(tag, queueName, priority);
@@ -30,8 +33,7 @@ public class AnasEtlWorker extends DBConsumeWorker  {
 
 	@Override
 	public void onJob(DBJob job) throws Exception {
-		curJobDescription = job.id+": ["+job.operation+"]    R:"+job.nretry+" pars="+job.par1+","+job.par2+","+job.par3+" extra="+job.extra;
-		log("AnasEtlJob onMessage "+tag+" "+processor);
+		log("AnasEtlJob onMessage "+job.id);
 		if (Utils.getConfig().simulazioneErrori)
 			if (Math.random()<.05) // sometime fails
 				throw new Exception("simulazione errore");

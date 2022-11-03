@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
+import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.ResultSetToJson;
@@ -43,11 +44,10 @@ public class StatusReport {
 		ArrayList<Object> list = new ArrayList<Object>();
 		if (ThreadManager.mainThreadManager!=null) {
 			for(Worker w: ThreadManager.mainThreadManager.threads) {
-				descs.add(w.curJobDescription);
 				if (w instanceof DBConsumeWorker)
 					list.add(((DBConsumeWorker)w).currentJob);
 				else
-					list.add(w.curJobDescription);
+					list.add(w.toString());
 			}
 		}
 		main.put("descriptions",  descs);
@@ -97,7 +97,6 @@ public class StatusReport {
 	      throws IOException, JsonProcessingException {
 	 
 	        jgen.writeStartObject();
-	        jgen.writeStringField("jobDescription", value.curJobDescription);
 	        jgen.writeObjectField("job", value.currentJob);
 	        jgen.writeNumberField("priority", value.priority);
 	        jgen.writeStringField("tag", value.tag);
@@ -110,6 +109,6 @@ public class StatusReport {
 	
 
 	public static void main(String args[]) throws Exception {
-		System.out.println(new StatusReport().getReport());
+		Log.web.log(new StatusReport().getReport());
 	}
 }

@@ -1,14 +1,12 @@
 package it.eng.anas.main;
 
-import java.util.function.Consumer;
 
 import it.eng.anas.Event;
 import it.eng.anas.Utils;
-import it.eng.anas.etl.AnasEtlJobProcessor;
 import it.eng.anas.etl.AnasEtlWorkerFactory;
 import it.eng.anas.monitor.WebServer;
-import it.eng.anas.threads.WorkerFactory;
 import it.eng.anas.threads.ThreadManager;
+import it.eng.anas.threads.WorkerFactory;
 
 public class Main {
 
@@ -28,8 +26,8 @@ public class Main {
 		});
 		while(!terminated)
 			Utils.longPause();
-		
 		spark.Spark.stop();
+		manager.killAll(true);
 	}
 	
 	private void startJobs() {
@@ -46,12 +44,11 @@ public class Main {
 	}
 	
 	public static void main(String args[]) {
-		Event.addListener("start-simulation", new Consumer<Object>() {
-			public void accept(Object t) {
-				AnasEtlJobProcessor.startSimulation((String) t);
-			}
-		});
-
+		System.out.println("starting main");
 		new Main().execute();
+		
+		System.out.println("end of main");
+
 	}
+	
 }

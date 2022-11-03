@@ -3,7 +3,7 @@ package it.eng.anas.threads;
 import java.util.ArrayList;
 import java.util.List;
 
-import it.eng.anas.Event;
+import it.eng.anas.Log;
 import it.eng.anas.ScheduleHelper;
 
 public class ThreadManager {
@@ -16,15 +16,11 @@ public class ThreadManager {
 	
 	public ThreadManager(WorkerFactory factory) {
 		this.factory = factory;
-		Event.addListener("exit", new Runnable() {
-			public void run() {
-				killAll(true);
-			}
-		});
-
 	}
 	
-	public static void log(String x) { System.out.println(x);}
+	public static void log(String x) { 
+		Log.etl.log(x);
+	}
 	
 	public void setNumberOfThreads(int n) {
 		log("setNumberOfThreads "+n);
@@ -37,7 +33,7 @@ public class ThreadManager {
 		final Worker job = factory.create(threads);
 		job.cleanup.add( new Runnable() {
 			public void run() {
-				log("cleanup");
+				log("thread manager cleanup");
 				if (threads.contains(job))
 					threads.remove(job);
 				updateNumOfThreads();
@@ -108,7 +104,7 @@ public class ThreadManager {
 					log("join thread "+t.tag);
 				} catch (Exception e) {
 					log("ERROR on join thread "+t.tag);
-					e.printStackTrace();
+					//e.printStackTrace();
 				}
 			}
 		}

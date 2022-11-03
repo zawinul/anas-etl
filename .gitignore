@@ -1,5 +1,4 @@
-password.db
-password.filenet
+password.*
 runnable.jar
 JavaCEWSClient/*
 

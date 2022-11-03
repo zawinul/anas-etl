@@ -1,6 +1,9 @@
 package it.eng.anas.monitor;
 
 
+import java.io.FileWriter;
+import java.util.Map;
+
 import it.eng.anas.Event;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
@@ -32,6 +35,24 @@ public class WebServer {
 			return "Hello World n="+n+ " "+req.url();
 		});
 
+		spark.Spark.get("/threads", (req, res) -> {
+			try {
+				Map<Thread, StackTraceElement[]> map = Thread.getAllStackTraces();
+				FileWriter w = new FileWriter("./thread-dump.txt");
+				for(Thread t:map.keySet()) {
+					w.write(t+"\n");
+					StackTraceElement[] tr = map.get(t);
+					for(StackTraceElement element:tr) {
+						w.write("\t"+element.toString()+"\n");						
+					}
+					Log.etl.log(t+"\n");
+				}
+				w.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return "ok";
+		});
 		spark.Spark.get("/report", (req, res) -> {
 			return new StatusReport().getReport();
 		});
@@ -41,7 +62,7 @@ public class WebServer {
 			
 //			insertNew(String queue, int priority,  
 //					String operation, String par1, String par2, String par3, int parentJob, String extra)
-			DbJobManager manager = new DbJobManager();
+			DbJobManager manager = new DbJobManager("insertJob");
 			String queue = req.queryParams("queue");
 			int priority = Integer.parseInt(req.queryParams("priority"));
 			String operation  = req.queryParams("operation");		
@@ -52,6 +73,7 @@ public class WebServer {
 			int parentJob = sParentJob==null ? -1 : Integer.parseInt(sParentJob);
 			String extra  = n(req.queryParams("extra"));		
 			DBJob job = manager.insertNew(queue,priority,operation,par1, par2, par3, parentJob, extra);
+			manager.close();
 			return Utils.getMapper().writeValueAsString(job);
 		});
 

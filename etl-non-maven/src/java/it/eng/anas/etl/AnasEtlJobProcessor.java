@@ -1,22 +1,17 @@
 package it.eng.anas.etl;
 
-import java.sql.Connection;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.filenet.api.collection.ClassDescriptionSet;
-import com.filenet.api.collection.PageIterator;
-import com.filenet.api.collection.PropertyDescriptionList;
-import com.filenet.api.core.ObjectStore;
-import com.filenet.api.meta.ClassDescription;
-import com.filenet.api.meta.PropertyDescription;
+import com.filenet.api.core.ContentTransfer;
 
 import it.eng.anas.FileHelper;
 import it.eng.anas.FilenetHelper;
+import it.eng.anas.Log;
 import it.eng.anas.Utils;
-import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.DbJobManager;
 import it.eng.anas.model.DBJob;
 
@@ -29,30 +24,22 @@ public class AnasEtlJobProcessor  {
 	}
 	
 	public void process(DBJob job) throws Exception {
-		if (job.operation.equals("getDbs"))
-			getDbs(job);
+		if (job.operation.equals("getFolderMD"))
+			getFolderMD(job);
 
-		else if (job.operation.equals("getDbsMd"))
-			getDbsMd(job);
-
-		else if (job.operation.equals("getDbsTree"))
-			getDbsTree(job);
-
-		else if (job.operation.equals("getFolderMd"))
-			getFolderMd(job);
-
-		else if (job.operation.equals("getDocId"))
-			getDocId(job);
+		else if (job.operation.equals("getFolderDocs"))
+			getFolderDocs(job);
 
 		else if (job.operation.equals("getDocMD"))
 			getDocMD(job);
 
-		else if (job.operation.equals("getDocContent"))
-			getDocContent(job);
+		else if (job.operation.equals("getContent"))
+			getContent(job);
 
 
-		else if (job.operation.equals("getClassStruct"))
-			getClassStruct(job);
+
+//		else if (job.operation.equals("getClassStruct"))
+//			getClassStruct(job);
 		
 		else {
 			throw new Exception("operation non riconosciuta: "+job.operation+", job="+Utils.getMapperOneLine().writeValueAsString(job));
@@ -60,182 +47,213 @@ public class AnasEtlJobProcessor  {
 		
 	}
 	
-	private void getDbs(DBJob job) throws Exception {
-		String parentPath = job.par1;
-		FilenetHelper fnet = caller.getFilenetHelper();
-		DbJobManager jobManager = caller.getJobManager();
-
-		List<String> paths = fnet.getDBSList(parentPath);
-		for(String path: paths) {
-			jobManager.insertNew(
-					"anas-etl", // queue
-					990, // priority
-					"getDbsMd", // operation
-					parentPath, // par1
-					path, // par2
-					null, // par3
-					job.id, //parentJob,
-					null // extra
-			);
-			
-			jobManager.insertNew(
-					"anas-etl", // queue
-					980, // priority
-					"getDbsTree", // operation
-					parentPath, // par1
-					path, // par2
-					null, // par3
-					job.id, //parentJob,
-					null // extra
-			);
-		}
-	}
-	
-	
-	private void getDbsMd(DBJob job)  throws Exception {
-		//String parentPath = job.par1;
+	private void getFolderMD(DBJob job) throws Exception {
+		String os = job.par1;
 		String path = job.par2;
+		Extra extra = caller.mapper.readValue(job.extra, Extra.class);
+		String outpath = folderMdPath(os, path);
+		if (new File(outpath).exists()) {
+			job.output ="già estratto";
+			return;
+		}
+		FilenetHelper fnet = caller.getFilenetHelper();
+		DbJobManager jobManager = caller.getJobManager();
+		ObjectNode node = fnet.getFolderMetadata(os, path, extra.withdoc);
+		fileHelper.saveJsonObject(outpath, node);
 		
-		ObjectNode node = caller.getFilenetHelper().getFolderMetadata(path);
-		fileHelper.saveJsonObject(path+"/dbs-metadata.json", node);
-	}
-	
-	private void getDbsTree(DBJob job)  throws Exception {
-		String parentPath = job.par1, path=job.par2;
-		DbJobManager jobManager = caller.getJobManager();
-		FilenetHelper fnet = caller.getFilenetHelper();
-		List<String> paths = fnet.getRecursiveFolders(path);
-		for(String sub: paths) {
-			jobManager.insertNew(
-					"anas-etl", // queue
-					800, // priority
-					"getFolderMd", // operation
-					parentPath, // par1
-					sub, // par2
-					null, // par3
-					job.id, //parentJob,
-					null // extra
-			);
+		
+		if (extra.maxrecursion>0) {
+			Extra newExtra = clone(extra);
+			newExtra.maxrecursion--;
 			
-			jobManager.insertNew(
-					"anas-etl", // queue
-					790, // priority
-					"getDocId", // operation
-					parentPath, // par1
-					sub, // par2
+			List<String> children = fnet.getSubfolders(os, path);
+			String jsonExtra = caller.mapper.writeValueAsString(newExtra);
+			for(String child: children) {
+
+				String childpath =  folderMdPath(os, child);
+				if (new File(childpath).exists()) 
+					continue;
+				
+				jobManager.insertNew(
+					job.queue, // queue
+					job.priority-1, // priority
+					"getFolderMD", // operation
+					os, // par1
+					child, // par2
 					null, // par3
 					job.id, //parentJob,
-					null // extra
-			);
-
-		}
-	}
-	
-	private void getFolderMd(DBJob job)  throws Exception {
-		//String parentPath = job.par1;
-		String path=job.par2;
-		FilenetHelper fnet = caller.getFilenetHelper();
-		ObjectNode metadata = fnet.getFolderMetadata(path);
-		fileHelper.saveJsonObject(path+"/folder-metadata.json", metadata);
-	}
-	
-	@SuppressWarnings("unused")
-	private void getDocId(DBJob job)  throws Exception {
-		String parentPath = job.par1, path=job.par2;
-		FilenetHelper fnet = caller.getFilenetHelper();
-		DbJobManager jobManager = caller.getJobManager();
-		List<String> docIds = fnet.getDocumentsId(path);
-		for(String docId: docIds) {
-			jobManager.insertNew(
-					"anas-etl", // queue
-					780, // priority
-					"getDocMD", // operation
-					parentPath, // par1
-					path, // par2
-					docId, // par3
-					job.id, //parentJob,
-					null // extra
-			);			
-		}
-	}
-	
-	
-	@SuppressWarnings("unused")
-	private void getDocMD(DBJob job)  throws Exception {
-		String parentPath = job.par1, path=job.par2, docId=job.par3;
-		FilenetHelper fnet = caller.getFilenetHelper();
-		ObjectNode metadata = fnet.getDocumentMetadata(docId);
-		fileHelper.saveJsonObject(path+"/"+docId+".json", metadata);
-	}
-
-	@SuppressWarnings("unused")
-	private void getDocContent(DBJob job)  throws Exception {
-		Utils.randomSleep(1000,3000);
-		String className = job.par1, dbsId=job.par2, docId=job.par3, path=job.extra;
-		fileHelper.saveJsonObject(path+"/"+docId+".bin", job);
-	}
-
-	
-	private void getClassStruct(DBJob job) throws Exception {
-		FilenetHelper filenet = caller.getFilenetHelper();
-		ObjectStore os = filenet.os;
-		System.out.println(""+os);
-		ClassDescriptionSet cds = os.get_ClassDescriptions();
-		PageIterator pi = cds.pageIterator();
-		HashMap<String,Object> mainlist = new HashMap<String,Object>();
-		while(pi.nextPage()) {
-			Object page[] = pi.getCurrentPage();
-			for(int i=0; i<page.length; i++) {
-				ClassDescription cd = (ClassDescription) page[i];
-				System.out.println(cd.get_SymbolicName());
-				HashMap<String, Object> cdmap = new HashMap<String, Object>();
-				mainlist.put(cd.get_SymbolicName(), cdmap);
-				cdmap.put("id", cd.get_Id().toString());
-				cdmap.put("name", cd.get_Name());
-				cdmap.put("description", cd.get_DescriptiveText());
-				ClassDescription s = cd.get_SuperclassDescription();
-				if (s!=null) {
-					cdmap.put("super", s.get_SymbolicName());
-					cdmap.put("superId", s.get_Id().toString());
-				}
-				HashMap<String,Object> props = new HashMap<String,Object>();
-				cdmap.put("properties", props);
-				PropertyDescriptionList pdl = cd.get_PropertyDescriptions();
-				Iterator it2 = pdl.iterator();
-				while(it2.hasNext()) {
-					PropertyDescription pd = (PropertyDescription) it2.next();
-					HashMap<String, Object> prop = new HashMap<String, Object>();
-					props.put(pd.get_SymbolicName(), prop);
-
-					prop.put("id", pd.get_Id().toString());
-					prop.put("name", pd.get_Name());
-					prop.put("description", pd.get_DescriptiveText());
-					prop.put("type", pd.get_DataType().toString());
-				}				
+					jsonExtra // extra
+				);
 			}
 		}
-		new FileHelper().saveJsonObject("descriptors.json", mainlist);
+		
+		if (extra.withdoc) {
+			ArrayNode arr = (ArrayNode) node.get("__documents__");
+			if (arr.size()>0) {
+				String docListPath = folderDocListPath(os, path);
+				fileHelper.saveJsonObject(docListPath, arr);
+			}
+			for(int i=0; i<arr.size(); i++) {
+				String docId = arr.get(i).asText();
+				String docPath = docMdPath(os, docId);
+				if (new File(docPath).exists()) {
+					Log.etl.log(docId+" già presente");
+					continue;
+				}
+				Extra newExtra = new Extra();
+				newExtra.path = path;
+				newExtra.withcontent = extra.withcontent;
+				String jextra = Utils.getMapperOneLine().writeValueAsString(newExtra);
 
-	}
-	
-	public static void startSimulation(String docClass) {
-		try {
-			Connection connection = DBConnectionFactory.defaultFactory.getConnection("startSimulation");
-			DbJobManager manager = new DbJobManager(connection);
+				jobManager.insertNew(
+						job.queue, // queue
+						job.priority-100, // priority
+						"getDocMD", // operation
+						os, // par1
+						docId, // par2
+						null, // par3
+						job.id, //parentJob,
+						jextra // extra
+				);
 
-			manager.insertNew(
-					"anas-etl", // queue
-					990, // priority
-					"getDbsId", // operation
-					docClass, // par1
-					null, // par2
-					null, // par3
-					-1, //parentJob,
-					null // extra
-			);
-			DBConnectionFactory.close(connection);
-		} catch (Exception e) {
-			e.printStackTrace();
+			}
+//			Extra newExtra = clone(extra);
+//			String jsonExtra = caller.mapper.writeValueAsString(newExtra);
+//			String doclistpath =  folderDocListPath(os, path);
+//			if (!(new File(doclistpath).exists())) { 
+//
+//				jobManager.insertNew(
+//						job.queue, // queue
+//						job.priority-100, // priority
+//						"getFolderDocs", // operation
+//						os, // par1
+//						path, // par2
+//						null, // par3
+//						job.id, //parentJob,
+//						jsonExtra // extra
+//				);
+//			}
 		}
 	}
+	
+	private void getFolderDocs(DBJob job) throws Exception {
+		String os = job.par1;
+		String path = job.par2;
+		
+		String outpath = folderDocListPath(os, path);
+		if (new File(outpath).exists()) {
+			job.output ="già estratto";
+			return;
+		}
+
+		Extra extra = caller.mapper.readValue(job.extra, Extra.class);
+		FilenetHelper fnet = caller.getFilenetHelper();
+		DbJobManager jobManager = caller.getJobManager();
+		Extra newExtra = new Extra();
+		newExtra.path = path;
+		newExtra.withcontent = extra.withcontent;
+		String jextra = Utils.getMapperOneLine().writeValueAsString(newExtra);
+		List<String> docIds = fnet.getDocumentsId(os, path);
+		fileHelper.saveJsonObject(outpath, docIds);
+		
+		for(String docId: docIds) {
+			String docPath = docMdPath(os, docId);
+			if (new File(docPath).exists()) {
+				Log.etl.log(docId+" già presente");
+				continue;
+			}
+			jobManager.insertNew(
+					job.queue, // queue
+					job.priority-100, // priority
+					"getDocMD", // operation
+					os, // par1
+					docId, // par2
+					null, // par3
+					job.id, //parentJob,
+					jextra // extra
+			);
+		}
+	}
+	
+	private void getDocMD(DBJob job) throws Exception {
+		String os = job.par1;
+		String docId = job.par2;
+
+		String outpath = docMdPath(os, docId);
+		if (new File(outpath).exists()) {
+			job.output ="già estratto";
+			return;
+		}
+		
+		Extra extra = caller.mapper.readValue(job.extra, Extra.class);
+		
+		FilenetHelper fnet = caller.getFilenetHelper();
+		DbJobManager jobManager = caller.getJobManager();
+		ObjectNode node = fnet.getDocumentMetadata(os, docId);
+		fileHelper.saveJsonObject(outpath, node);
+		if (extra.withcontent) {
+			Extra newExtra = new Extra();
+			newExtra.path = extra.path;
+			String jextra = Utils.getMapperOneLine().writeValueAsString(newExtra);
+			jobManager.insertNew(
+					job.queue, // queue
+					job.priority-100, // priority
+					"getContent", // operation
+					os, // par1
+					docId, // par2
+					null, // par3
+					job.id, //parentJob,
+					jextra // extra
+			);
+			
+		}
+	}
+	
+	private void getContent(DBJob job) throws Exception {
+		String os = job.par1;
+		String docId = job.par2;
+		
+		@SuppressWarnings("unused")
+		Extra extra = caller.mapper.readValue(job.extra, Extra.class);
+		FilenetHelper fnet = caller.getFilenetHelper();
+		List<ContentTransfer> contents = fnet.getContentTransfer(os, docId);
+		for(ContentTransfer ct: contents) {
+			String filename = ct.get_RetrievalName();
+			InputStream s = ct.accessContentStream();
+			String outpath = contentPath(os, docId, filename);
+			fileHelper.save(outpath, s);
+		}
+		
+	}
+	
+	private String folderMdPath(String os, String path) {
+		return os+"/"+path+"/folder-metadata.json";
+	}
+	
+	
+	private String folderDocListPath(String os, String path) {
+		return os+"/"+path+"/document-list.json";
+	}
+
+	private String docMdPath(String os, String docId) {
+		return os+"/_documents/"+docId+".metadata.json";
+	}
+
+	private String contentPath(String os, String docId, String rname) {
+		return os+"/_documents/"+docId+"."+rname;
+	}
+	
+	public static class Extra {
+		public String path = null;
+		public Integer maxrecursion = null;
+		public Boolean withdoc = null;
+		public Boolean withcontent = null;
+		
+	}
+	
+	private static Extra clone(Extra x) {
+		Extra r = Utils.getMapper().convertValue(x, Extra.class);
+		return r;
+	}
+
 }

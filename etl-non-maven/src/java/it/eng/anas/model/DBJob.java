@@ -22,6 +22,7 @@ public class DBJob extends Model {
 	public int duration;
 	
 	public String extra;
+	public String output;
 	
 	public static enum Status {
 		ready,

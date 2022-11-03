@@ -2,7 +2,6 @@ package it.eng.anas.etl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
 import it.eng.anas.model.DBJob;
@@ -17,7 +16,8 @@ public class DBConsumeWorker extends Worker {
 	public DBJob currentJob;
 	
 	public void log(String msg) {
-		Log.main.log(position+":"+tag+":"+msg);
+		if(currentJob!=null)
+			super.log("job-"+currentJob.id+":"+msg);
 	}
 
 	public DBConsumeWorker(String tag, String queueName, int priority) {
@@ -25,7 +25,7 @@ public class DBConsumeWorker extends Worker {
 		super(tag, priority);
 		this.queueName = queueName;
 		
-		jobManager = new DbJobManager();
+		jobManager = new DbJobManager(tag);
 		final DBConsumeWorker t = this;
 		cleanup.add(new Runnable() {
 			public void run() {
@@ -53,13 +53,13 @@ public class DBConsumeWorker extends Worker {
 		Utils.shortPause();
 	}
 
-	private void singleStep()  {
+	private void singleStep() throws Exception {
 		DBJob job = jobManager.extract(queueName);
 		currentJob = job;
 		if (job==null) {
 			status = "coda vuota";
 			Utils.longPause();
-			log("Coda vuota: "+queueName);
+			//log("Coda vuota: "+queueName);
 			return;
 		}
 
@@ -74,10 +74,12 @@ public class DBConsumeWorker extends Worker {
 		} 
 		catch (Exception e) {
 			log("error on receive BL: "+e.getMessage());
-			e.printStackTrace();
 			jobManager.nack(job, Utils.getStackTrace(e));
 			status = e.getMessage();
-			Utils.shortPause();
+			throw e;
+		}
+		finally {
+			currentJob = null;
 		}
 	}
 

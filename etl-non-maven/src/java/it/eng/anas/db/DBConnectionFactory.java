@@ -29,23 +29,15 @@ public class DBConnectionFactory {
 	private String user;
 	private String password;
 	
-//	private static class Entry {
-//		public String label;
-//		public DBConnectionFactory factory;
-//		public Connection connection;
-//	}
 	public static HashMap<Connection, String> map = new HashMap<Connection, String>();
-	
 	
 	public Connection getConnection(String label) throws Exception {
 		String driverClass = Utils.getConfig().db.driverClass;
 		Class.forName(driverClass);
 		Connection conn = DriverManager.getConnection(url, user, password);
-		String tag = Utils.rndString(6);
-		map.put(conn, tag+" "+label);
+		map.put(conn, label);
 		nopen++;
-		System.out.println("CONNESSIONI APERTE: "+nopen);
-		//showMap();
+		//Log.etl.log("CONNESSIONI APERTE: "+nopen);
 		return conn;
 	}
 	
@@ -72,20 +64,13 @@ public class DBConnectionFactory {
 		}
 		finally {
 			nopen--;
-			System.out.println("CONNESSIONI APERTE: "+nopen);
+			//Log.etl.log("CONNESSIONI APERTE: "+nopen);
 			//showMap();
-
 		}
 	}
 	
 	public static String[] getOpenConnectors() {
 		return map.values().toArray(new String[0]);
 	}
-	
-//	private static void showMap() {
-//		int i=0;
-//		for(Entry<Connection, String> entry: map.entrySet()) {
-//			System.out.println("\tdbconn "+(i++)+" "+entry.getValue());
-//		}
-//	}
+
 }

@@ -19,7 +19,7 @@ public class MainTestConfig extends Model {
 		
 		Config c2 = Utils.getMapper().readValue(new FileReader("./config-sample.json"), Config.class);
 		String c2json = Utils.getMapper().writeValueAsString(c2);
-		Log.main.log(c2json);
+		Log.etl.log(c2json);
 		
 //		long t = new Date().getTime();
 //		SimpleDateFormat dateFormat = new SimpleDateFormat("EEE HH:mm", Locale.ITALIAN);

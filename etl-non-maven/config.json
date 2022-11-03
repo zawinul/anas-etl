@@ -2,11 +2,19 @@
 	"outputBasePath": "c:/temp/anas-etl-out",
 	"webServerPort": 5150,
 	
-	"filenet": {
+	"filenet_prototipo": {
 		"uri": "http://10.21.177.54:9080/wsi/FNCEWS40MTOM/",
 		"userid": "diosadmin",
 		"password": "",
 		"objectstore": "DIOS",
+		"stanza": "FileNetP8WSI"
+	},
+	"filenet": {
+		"__ACCE__" : "http://dg-pdmpcpe1.anasnet.it:9001/acce/",
+		"uri": "http://dg-pdmpcpe1.anasnet.it:9001/",
+		"userid": "E94188E",
+		"password": "",
+		"objectstore": "PDM",
 		"stanza": "FileNetP8WSI"
 	},
 	"db": {
