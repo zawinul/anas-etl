@@ -42,7 +42,7 @@ public class DbJobManager  {
 
 
 	public  DBJob insertNew(String queue, int priority,  
-			String operation, String par1, String par2, String par3, int parentJob, String extra) {
+			String operation, String key1, String key2, String key3, int parentJob, String body)  throws Exception {
 		String time = Utils.date2String(new Date());
 		DBJob job = new DBJob(
 			-1, //id
@@ -51,16 +51,16 @@ public class DbJobManager  {
 			0, // n retry
 			queue, 
 			operation,
-			par1, par2, par3, 
+			key1, key2, key3, 
 			time, time, 
 			parentJob,
 			0, // duration
-			extra
+			body
 		);		
 		return insertNew(job);
 	}
 
-	public  DBJob insertNew(DBJob job) {
+	public  DBJob insertNew(DBJob job)  throws Exception {
 		return transactionManager.execute(new Callable<DBJob>() {
 			public DBJob call() throws Exception {
 				return _insertNew(job);
@@ -69,7 +69,7 @@ public class DbJobManager  {
 	}
 
 
-	public DBJob extract(String queue) {
+	public DBJob extract(String queue)  throws Exception {
 		return transactionManager.execute(new Callable<DBJob>() {
 			public synchronized DBJob call() throws Exception {
 				return _extract2(queue);
@@ -78,7 +78,7 @@ public class DbJobManager  {
 	}
 	
 
-	public DBJob ack(DBJob job, String out) {
+	public DBJob ack(DBJob job, String out)  throws Exception {
 		return transactionManager.execute(new Callable<DBJob>() {
 			public synchronized DBJob call() throws Exception {
 				return _ack(job, out);
@@ -86,7 +86,7 @@ public class DbJobManager  {
 		});
 	}
 
-	public DBJob nack(DBJob job, String out) {
+	public DBJob nack(DBJob job, String out)  throws Exception {
 		return transactionManager.execute(new Callable<DBJob>() {
 			public synchronized DBJob call() throws Exception {
 				return _nack(job, out);
@@ -94,7 +94,7 @@ public class DbJobManager  {
 		});
 	}
 	
-	private DBJob _insertNew(DBJob job) {
+	private DBJob _insertNew(DBJob job)  throws Exception {
 		SimpleDbOp op = new SimpleDbOp(connection)
 			.query("select id from jobid_sequence")
 			.executeQuery();
@@ -117,11 +117,15 @@ public class DbJobManager  {
 		return job;
 	}
 	
-	private void insert(DBJob job, String table) {
+	private void insert(DBJob job, String table) throws Exception {
 		String insertSql = "insert into "
 				+ table
-				+ " (jobid,priority,status,nretry,queue,operation,par1,par2,par3,creation,last_change,parent_job,duration,extra,output) "
+				+ " (jobid,priority,status,nretry,queue,operation,key1,key2,key3,creation,last_change,parent_job,duration,body,output) "
 				+ " values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		
+		String out = job.output;
+		if (out!=null && out.length()>500)
+			out = out.substring(0,500);
 		
 		new SimpleDbOp(connection)
 			.query(insertSql)
@@ -131,23 +135,23 @@ public class DbJobManager  {
 			.setInt(4, job.nretry)
 			.setString(5, job.queue)
 			.setString(6, job.operation)
-			.setString(7, job.par1)
-			.setString(8, job.par2)
-			.setString(9, job.par3)
+			.setString(7, job.key1)
+			.setString(8, job.key2)
+			.setString(9, job.key3)
 			.setString(10, job.creation)
 			.setString(11, job.last_change)
 			.setInt(12, job.parent_job)
 			.setInt(13, job.duration)
-			.setBlob(14, job.extra)
-			.setBlob(15, job.output)
+			.setString(14, job.body)
+			.setString(15, out)
 			.execute()
 			.close()
 			.throwOnError();		
 	}
 	
 	@SuppressWarnings("unused")
-	private DBJob _extract(String queue)  {
-		String sql1 = "select * from job where queue=? and status=? order by priority desc, nretry, operation, par1, par2, par3 limit 1";
+	private DBJob _extract(String queue)  throws Exception {
+		String sql1 = "select * from job where queue=? and status=? order by priority desc, nretry, operation, key1, key2, key3 limit 1";
 		SimpleDbOp op1 = new SimpleDbOp(connection)
 				.query(sql1)
 				.setString(1, queue)
@@ -172,14 +176,14 @@ public class DbJobManager  {
 	}
 
 	
-	private DBJob _extract2(String queue)  {
+	private DBJob _extract2(String queue)  throws Exception {
 		String lcktag = "LCK-"+Utils.rndString(6);
 		String getLockSql = 
 				"UPDATE job SET status=? WHERE jobid= ("
 				+ "	(SELECT jobid "
 				+ "        FROM (select * from job as job2 ) as j2"
 				+ "        WHERE status='ready' "
-				+ "        ORDER BY priority desc,nretry,par1,par2,par3,jobid "
+				+ "        ORDER BY priority desc,nretry,key1,key2,key3,jobid "
 				+ "        LIMIT 1"
 				+ "    )  "
 				+ ")";
@@ -230,7 +234,7 @@ public class DbJobManager  {
 		return ret;
 	}
 
-	private DBJob _ack(DBJob job, String out)  {
+	private DBJob _ack(DBJob job, String out)  throws Exception  {
 		job.output = out;
 		job.status = DBJob.Status.done;
 		updateTiming(job);
@@ -245,7 +249,7 @@ public class DbJobManager  {
 	}
 
 	
-	private DBJob _nack(DBJob job, String out) {
+	private DBJob _nack(DBJob job, String out)  throws Exception {
 		job.output = out;
 		updateTiming(job);
 		job.nretry++;
@@ -281,15 +285,15 @@ public class DbJobManager  {
 		}catch(Exception e) {}
 		ret.queue = op.getString("queue");
 		ret.operation = op.getString("operation");
-		ret.par1 = op.getString("par1");
-		ret.par2 = op.getString("par2");
-		ret.par3 = op.getString("par3");
+		ret.key1 = op.getString("key1");
+		ret.key2 = op.getString("key2");
+		ret.key3 = op.getString("key3");
 		ret.creation = op.getString("creation");
 		ret.last_change = op.getString("last_change");
 		
 		ret.parent_job = op.isNull("parent_job") ? null : op.getInt("parent_job");
-		ret.extra = op.getBlobAsString("extra");
-		ret.output = op.getBlobAsString("output");
+		ret.body = op.getString("body");
+		ret.output = op.getString("output");
 		
 		return ret;
 	} 

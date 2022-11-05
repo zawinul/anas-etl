@@ -109,7 +109,7 @@ public class FilenetHelper {
 	}
 
 
-	public ObjectNode  getFolderMetadata(String objectStore, String path, boolean withDocs) throws Exception {
+	public ObjectNode  getFolderMetadataByPath(String objectStore, String path, boolean withDocs) throws Exception {
 		ObjectStore os = getOS(objectStore);
 		if (os==null)
 			throw new Exception("Non esiste l'ObjectStore "+os);
@@ -132,6 +132,7 @@ public class FilenetHelper {
 			pf.addExcludeProperty(p);
 			
 		Folder f = Factory.Folder.fetchInstance(os, path, pf);
+		
 		FolderImpl fi = (FolderImpl) f;
 		ObjectNode ret = mapper.createObjectNode();
 		for(Property ap: fi.getPropertiesImpl().toArray()) 
@@ -150,6 +151,49 @@ public class FilenetHelper {
 		return ret;
 	}
 
+
+	public ObjectNode  getFolderMetadataById(String objectStore, String id, boolean withDocs) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
+
+		PropertyFilter pf = new PropertyFilter();
+		pf.setMaxRecursion(0);
+
+		pf.addIncludeType(new FilterElement(0, null, null, FilteredPropertyType.ANY, null));
+		pf.addIncludeProperty(new FilterElement(2, null, null, PropertyNames.ID, null));
+		pf.addExcludeProperty(PropertyNames.SUB_FOLDERS);
+		if (!withDocs) {
+			pf.addExcludeProperty(PropertyNames.CONTAINED_DOCUMENTS);
+			pf.addExcludeProperty(PropertyNames.CONTAINEES);
+		}
+		
+		for(String p:commonPropertiesExclusion)
+			pf.addExcludeProperty(p);
+		for(String p:folderPropertiesExclusion)
+			pf.addExcludeProperty(p);
+			
+		//Folder f = Factory.Folder.fetchInstance(os, path, pf);
+		Folder f = Factory.Folder.fetchInstance(os, new Id(id), pf);
+		
+		FolderImpl fi = (FolderImpl) f;
+		ObjectNode ret = mapper.createObjectNode();
+		for(Property ap: fi.getPropertiesImpl().toArray()) 
+			setJsonPropertyValue(ap, ap.getPropertyName(), ret);
+		
+		if (withDocs) {
+			DocumentSet ds = f.get_ContainedDocuments();
+			@SuppressWarnings("unchecked")
+			List<Document> docs = getList(ds.iterator());
+			List<String> docIds = new ArrayList<String>();
+			for(Document doc: docs) 
+				docIds.add(doc.get_Id().toString());				
+			
+			ret.set("__documents__", mapper.valueToTree(docIds));
+		}
+		return ret;
+	}
 
 	public ObjectNode  getDocumentMetadata(String objectStore, String id) throws Exception {
 		ObjectStore os = getOS(objectStore);
@@ -273,7 +317,7 @@ public class FilenetHelper {
 	}
 
 
-	public List<String>  getSubfolders(String objectStore, String path) throws Exception {
+	public List<String>  getSubfoldersPaths(String objectStore, String path) throws Exception {
 		ObjectStore os = getOS(objectStore);
 		if (os==null)
 			throw new Exception("Non esiste l'ObjectStore "+os);
@@ -290,7 +334,24 @@ public class FilenetHelper {
 		return ret;
 	}
 
-	
+
+	public List<String>  getSubfoldersId(String objectStore, String path) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
+		PropertyFilter pf = new PropertyFilter();
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.SUB_FOLDERS, null));
+		Folder f = Factory.Folder.fetchInstance(os, path, pf);
+		@SuppressWarnings("unchecked")
+		List<Folder> sublist = getList(f.get_SubFolders().iterator());
+		List<String> ret = new ArrayList<String>();
+		for(Folder sub: sublist)
+			ret.add(sub.get_Id().toString());
+		return ret;
+	}
+
 //	public List<String>  getRecursiveFolders(String objectStore, String path) throws Exception {
 //		ObjectStore os = getOS(objectStore);
 //		if (os==null)

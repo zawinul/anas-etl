@@ -58,25 +58,20 @@ public class WebServer {
 		});
 
 		spark.Spark.get("/insertJob", (req, res) -> {
-			//insertJob?queue=anas-etl&priority=1000&operation=prova&par1=&par2=&par3=&parentJob=&extra=
-			
-//			insertNew(String queue, int priority,  
-//					String operation, String par1, String par2, String par3, int parentJob, String extra)
 			DbJobManager manager = new DbJobManager("insertJob");
 			String queue = req.queryParams("queue");
 			int priority = Integer.parseInt(req.queryParams("priority"));
 			String operation  = req.queryParams("operation");		
-			String par1  = n(req.queryParams("par1"));		
-			String par2  = n(req.queryParams("par2"));		
-			String par3  = n(req.queryParams("par3"));		
+			String key1  = n(req.queryParams("key1"));		
+			String key2  = n(req.queryParams("key2"));		
+			String key3  = n(req.queryParams("key3"));		
 			String sParentJob  = n(req.queryParams("parentJob"));	
 			int parentJob = sParentJob==null ? -1 : Integer.parseInt(sParentJob);
-			String extra  = n(req.queryParams("extra"));		
-			DBJob job = manager.insertNew(queue,priority,operation,par1, par2, par3, parentJob, extra);
+			String body  = n(req.queryParams("body"));		
+			DBJob job = manager.insertNew(queue,priority,operation,key1, key2, key3, parentJob, body);
 			manager.close();
 			return Utils.getMapper().writeValueAsString(job);
 		});
-
 
 		spark.Spark.get("/jobs", (req, res) -> {
 			return new StatusReport().getJobs();
@@ -94,8 +89,6 @@ public class WebServer {
 		});
 
 
-//		spark.Spark.get("/favicon.ico", (req, res) -> {
-//		});
 
 	}
 

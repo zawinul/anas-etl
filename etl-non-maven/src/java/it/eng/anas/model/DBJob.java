@@ -11,9 +11,9 @@ public class DBJob extends Model {
 	public String queue;
 
 	public String operation;
-	public String par1;
-	public String par2;
-	public String par3;
+	public String key1;
+	public String key2;
+	public String key3;
 	
 	public String creation;
 	public String last_change;
@@ -21,7 +21,7 @@ public class DBJob extends Model {
 	public int parent_job;
 	public int duration;
 	
-	public String extra;
+	public String body;
 	public String output;
 	
 	public static enum Status {
@@ -32,8 +32,8 @@ public class DBJob extends Model {
 	}
 
 	public DBJob() {}
-	public DBJob(int id, Status status, Integer priority, Integer nretry, String queue, String command, String par1,
-			String par2, String par3, String creation, String last_change, int parent_job, int duration, String extra) {
+	public DBJob(int id, Status status, Integer priority, Integer nretry, String queue, String command, String key1,
+			String key2, String key3, String creation, String last_change, int parent_job, int duration, String body) {
 		super();
 		this.id = id;
 		this.status = status;
@@ -41,14 +41,14 @@ public class DBJob extends Model {
 		this.nretry = nretry;
 		this.queue = queue;
 		this.operation = command;
-		this.par1 = par1;
-		this.par2 = par2;
-		this.par3 = par3;
+		this.key1 = key1;
+		this.key2 = key2;
+		this.key3 = key3;
 		this.creation = creation;
 		this.last_change = last_change;
 		this.parent_job = parent_job;
 		this.duration = duration;
-		this.extra = extra;
+		this.body = body;
 	}
 
 

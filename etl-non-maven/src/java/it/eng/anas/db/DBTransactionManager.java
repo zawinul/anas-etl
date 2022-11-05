@@ -19,7 +19,7 @@ public class DBTransactionManager {
 		}
 		catch(Exception e) {
 			try {
-				Log.db.log(e);
+				//Log.db.log(e);
 				connection.rollback();
 			}
 			catch(Exception e2) {

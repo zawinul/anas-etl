@@ -15,11 +15,11 @@ public class MainDBSend {
 					"anas-etl", // queue
 					10, // priority
 					"get_file", // operation
-					Utils.rndString(4), // par1
-					Utils.rndString(4), // par2
-					Utils.rndString(4), // par3
+					Utils.rndString(4), // key1
+					Utils.rndString(4), // key2
+					Utils.rndString(4), // key3
 					-1, //parentJob,
-					null // extra
+					null // body
 			);
 		}
 		DBConnectionFactory.close(con);

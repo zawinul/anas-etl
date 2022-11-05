@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import it.eng.anas.Log;
+import it.eng.anas.Utils;
 
 public abstract class Worker extends Thread {
 	public String tag;
@@ -32,8 +33,12 @@ public abstract class Worker extends Thread {
 			execute();
 		}
 		catch(Exception e) {
+			Log.etl.log("ERRORE CHE FA USCIRE DAL WORKER");
 			e.printStackTrace();
 			status = e.getMessage();
+//			Log.etl.log("Wait 30 seconds");
+//			Utils.sleep(30000);
+//			Log.etl.log("after wait");
 		}
 
 		status = "cleanup";
@@ -47,6 +52,7 @@ public abstract class Worker extends Thread {
 			}
 		}
 		status = "after cleanup, exit";
+		
 	}
 	
 	public abstract void execute() throws Exception;

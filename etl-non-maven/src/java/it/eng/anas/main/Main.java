@@ -34,7 +34,7 @@ public class Main {
 		factory = new AnasEtlWorkerFactory();
 		manager = new ThreadManager(factory);
 		ThreadManager.mainThreadManager = manager;
-		manager.setNumberOfThreads(-1);		
+		manager.setNumberOfThreads(1);		
 	}
 	
 	private void startWeb() {

@@ -15,13 +15,12 @@
 	<div class="main">
 		<div class="buttons box">
 			<button onClick="setN()">set # workers</button>
-<!-- 			
-			<button onClick="insertJob()">insert job</button>
- -->
  			<button onClick="startScan()">start scan</button>
 			<button onClick="startScanProgetti()">start scan progetti</button>
+			<button onClick="startScanLavori()">start scan lavori</button>
 			<button onClick="exit()">exit</button>
-			<button class="refresh" onClick="showReport()" style="float:right">refresh</button>
+
+			<button onClick="showReport()" style="float:right">refresh</button>
 		</div>
 		<div class="workers box">
 			<table>
@@ -31,9 +30,9 @@
 						<th>priority</th>
 						<th># retry</th>
 						<th>operation</th>
-						<th>par1</th>
-						<th>par2</th>
-						<th>par3</th>
+						<th>key1</th>
+						<th>key2</th>
+						<th>key3</th>
 						<th>status</th>
 					</tr>
 				</thead>

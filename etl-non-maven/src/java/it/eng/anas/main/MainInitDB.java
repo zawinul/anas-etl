@@ -5,6 +5,7 @@ import java.sql.Connection;
 
 import org.apache.commons.io.IOUtils;
 
+import it.eng.anas.Event;
 import it.eng.anas.UTF8;
 import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.SimpleDbOp;
@@ -20,9 +21,10 @@ public class MainInitDB {
 	private void exec(String sql, Connection con) throws Exception {
 		System.out.println(sql);
 		new SimpleDbOp(con)
-		.query(sql)
-		.execute()
-		.throwOnError();
+			.query(sql)
+			.execute()
+			.close()
+			.throwOnError();
 		System.out.println("done!");
 	}
 	
@@ -41,6 +43,7 @@ public class MainInitDB {
 		exec(readSql("create-sequence"), con);
 		exec(readSql("init-sequence"), con);
 		DBConnectionFactory.close(con);
+		Event.emit("exit");
 	}
 
 	public static void main(String[] args) throws Exception {

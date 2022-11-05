@@ -5,6 +5,7 @@ import java.util.List;
 
 import it.eng.anas.Log;
 import it.eng.anas.ScheduleHelper;
+import it.eng.anas.Utils;
 
 public class ThreadManager {
 	public int NMAXTHREADS = 200;
@@ -33,16 +34,26 @@ public class ThreadManager {
 		final Worker job = factory.create(threads);
 		job.cleanup.add( new Runnable() {
 			public void run() {
-				log("thread manager cleanup");
-				if (threads.contains(job))
-					threads.remove(job);
-				updateNumOfThreads();
+				remove(job);
 			}
 		});
 		threads.add(job);
 		job.start();
 	}
 
+	private void remove(Worker w) {
+		w.status = "exiting, "+w.status;
+		(new Thread() {
+			public void run() {
+				Utils.sleep(30000);
+				log("thread manager cleanup");
+				if (threads.contains(w))
+					threads.remove(w);
+				updateNumOfThreads();
+				
+			}
+		}).start();
+	}
 	
 	public void deleteOne() {
 		log("deleteOne");
