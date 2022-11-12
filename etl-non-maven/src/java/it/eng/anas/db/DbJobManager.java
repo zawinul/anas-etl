@@ -46,7 +46,7 @@ public class DbJobManager  {
 		String time = Utils.date2String(new Date());
 		DBJob job = new DBJob(
 			-1, //id
-			DBJob.Status.ready,
+			null, // lock
 			priority,
 			0, // n retry
 			queue, 
@@ -120,18 +120,15 @@ public class DbJobManager  {
 	private void insert(DBJob job, String table) throws Exception {
 		String insertSql = "insert into "
 				+ table
-				+ " (jobid,priority,status,nretry,queue,operation,key1,key2,key3,creation,last_change,parent_job,duration,body,output) "
+				+ " (jobid,priority,locktag,nretry,queue,operation,key1,key2,key3,creation,last_change,parent_job,duration,body,output) "
 				+ " values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		
-		String out = job.output;
-		if (out!=null && out.length()>500)
-			out = out.substring(0,500);
 		
 		new SimpleDbOp(connection)
 			.query(insertSql)
 			.setInt(1, job.id)
 			.setInt(2, job.priority)
-			.setString(3, job.status.toString())
+			.setString(3, job.locktag)
 			.setInt(4, job.nretry)
 			.setString(5, job.queue)
 			.setString(6, job.operation)
@@ -143,54 +140,29 @@ public class DbJobManager  {
 			.setInt(12, job.parent_job)
 			.setInt(13, job.duration)
 			.setString(14, job.body)
-			.setString(15, out)
+			.setString(15, limit(job.output, 500))
 			.execute()
 			.close()
 			.throwOnError();		
 	}
 	
-	@SuppressWarnings("unused")
-	private DBJob _extract(String queue)  throws Exception {
-		String sql1 = "select * from job where queue=? and status=? order by priority desc, nretry, operation, key1, key2, key3 limit 1";
-		SimpleDbOp op1 = new SimpleDbOp(connection)
-				.query(sql1)
-				.setString(1, queue)
-				.setString(2, DBJob.Status.ready.toString()) 
-				.executeQuery()
-				.throwOnError();
-		DBJob ret = fromDB(op1);
-		op1.close();
-
-		if (ret!=null) {
-			ret.status = DBJob.Status.process;
-			ret.last_change = Utils.date2String(new Date());
-			String sql2 = "update job set status=?, last_change=? where jobid=?";
-			new SimpleDbOp(connection)
-				.query(sql2)
-				.setString(1, ret.status.toString())
-				.setString(2, ret.last_change)
-				.setInt(3, ret.id)
-				.execute().close().throwOnError();			
-		}
-		return ret;
-	}
-
+	private static final String getLockSql = 
+		" UPDATE job SET locktag=?, last_change=? WHERE jobid= ( "+
+		"   (SELECT jobid                                        "+
+		"     FROM (select * from job as job2 ) as j2            "+
+		"     WHERE locktag is null                              "+
+		"     ORDER BY priority desc,nretry,key1,key2,key3,jobid "+
+		"     LIMIT 1                                            "+
+		"   )                                                    "+
+		" )                                                      ";
 	
 	private DBJob _extract2(String queue)  throws Exception {
-		String lcktag = "LCK-"+Utils.rndString(6);
-		String getLockSql = 
-				"UPDATE job SET status=? WHERE jobid= ("
-				+ "	(SELECT jobid "
-				+ "        FROM (select * from job as job2 ) as j2"
-				+ "        WHERE status='ready' "
-				+ "        ORDER BY priority desc,nretry,key1,key2,key3,jobid "
-				+ "        LIMIT 1"
-				+ "    )  "
-				+ ")";
-
+		String lcktag = Utils.rndString(6);
+		String now = Utils.date2String(new Date());
 		SimpleDbOp op1 = new SimpleDbOp(connection)
 				.query(getLockSql)
 				.setString(1, lcktag)
+				.setString(2, now)
 				.executeUpdate()
 				.close()
 				.throwOnError();
@@ -207,7 +179,7 @@ public class DbJobManager  {
 			return null;
 		}
 		
-		String sqlget = "select * from job where status=?";
+		String sqlget = "select * from job where locktag=?";
 		SimpleDbOp op2 = new SimpleDbOp(connection)
 				.query(sqlget)
 				.setString(1, lcktag)
@@ -218,25 +190,11 @@ public class DbJobManager  {
 		if (ret==null) 
 			throw new RuntimeException("non dovrebbe mai accadere: lcktag="+lcktag);
 		
-		ret.status = DBJob.Status.process;
-		ret.last_change = Utils.date2String(new Date());
-		op2.close();
-		
-		String sqlSetStatus = "update job set status=?, last_change=? where jobid=?";
-		new SimpleDbOp(connection)
-			.query(sqlSetStatus)
-			.setString(1, ret.status.toString())
-			.setString(2, ret.last_change)
-			.setInt(3, ret.id)
-			.execute()
-			.throwOnError();			
-
 		return ret;
 	}
 
 	private DBJob _ack(DBJob job, String out)  throws Exception  {
 		job.output = out;
-		job.status = DBJob.Status.done;
 		updateTiming(job);
 		insert(job, "job_done");
 		
@@ -253,14 +211,21 @@ public class DbJobManager  {
 		job.output = out;
 		updateTiming(job);
 		job.nretry++;
+		job.last_change = Utils.date2String(new Date());
 		if (job.nretry<Utils.getConfig().nMaxRetry) {
-			// requeue for another retry
-			job.status = DBJob.Status.ready;
-			insert(job, "job");
+			// reinoltro in coda togliendo il lock e incrementando il n.retry
+			new SimpleDbOp(connection)
+				.query("UPDATE job SET locktag=null, last_change=?, nretry=?, output=? WHERE jobid=?")
+				.setString(1, job.last_change)
+				.setInt(2, job.nretry)
+				.setString(3, limit(job.output, 500))
+				.setInt(4, job.id)
+				.executeUpdate()
+				.close()
+				.throwOnError();
 		}
 		else {
 			// move to job_error
-			job.status = DBJob.Status.ready;
 			insert(job, "job_error");
 			String sql = "delete from job where jobid=?";
 			new SimpleDbOp(connection)
@@ -277,12 +242,8 @@ public class DbJobManager  {
 		final DBJob ret = new DBJob();
 		ret.id = op.getInt("jobid");
 		ret.priority = op.getInt("priority");
-		String status=op.getString("status");
-		//Log.db.log("status="+status);
 		ret.nretry = op.getInt("nretry");
-		try {
-			ret.status = DBJob.Status.valueOf(status);
-		}catch(Exception e) {}
+		ret.locktag= op.getString("locktag");;
 		ret.queue = op.getString("queue");
 		ret.operation = op.getString("operation");
 		ret.key1 = op.getString("key1");
@@ -311,6 +272,15 @@ public class DbJobManager  {
 		if (connection!=null)
 			DBConnectionFactory.close(connection);
 		connection = null;
+	}
+	
+	private String limit(String x, int maxlen) {
+		if (x==null)
+			return null;
+		else if (x.length()>maxlen)
+			return x.substring(0,maxlen);
+		else
+			return x;
 	}
 
 }

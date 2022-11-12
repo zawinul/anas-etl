@@ -7,9 +7,9 @@ public class DBJob extends Model {
 	public int id;
 	public Integer priority;
 	public Integer nretry;
-	public Status status;
 	public String queue;
-
+	public String locktag;
+	
 	public String operation;
 	public String key1;
 	public String key2;
@@ -24,19 +24,13 @@ public class DBJob extends Model {
 	public String body;
 	public String output;
 	
-	public static enum Status {
-		ready,
-		process,
-		done,
-		error
-	}
 
 	public DBJob() {}
-	public DBJob(int id, Status status, Integer priority, Integer nretry, String queue, String command, String key1,
+	public DBJob(int id, String locktag, Integer priority, Integer nretry, String queue, String command, String key1,
 			String key2, String key3, String creation, String last_change, int parent_job, int duration, String body) {
 		super();
 		this.id = id;
-		this.status = status;
+		this.locktag = locktag;
 		this.priority = priority;
 		this.nretry = nretry;
 		this.queue = queue;

@@ -3,8 +3,6 @@ package it.eng.anas.db;
 import java.sql.Connection;
 import java.util.concurrent.Callable;
 
-import it.eng.anas.Log;
-
 public class DBTransactionManager {
 	
 	public DBTransactionManager(Connection connection) {

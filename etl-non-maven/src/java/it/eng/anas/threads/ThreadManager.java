@@ -42,7 +42,7 @@ public class ThreadManager {
 	}
 
 	private void remove(Worker w) {
-		w.status = "exiting, "+w.status;
+		w.workerStatus = "exiting, "+w.workerStatus;
 		(new Thread() {
 			public void run() {
 				Utils.sleep(30000);

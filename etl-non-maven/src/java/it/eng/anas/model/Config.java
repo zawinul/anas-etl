@@ -11,9 +11,18 @@ public class Config extends Model {
 	public int longPause[] = {10000, 30000};
 	public int nMaxRetry = 10;
 	public boolean simulazioneErrori = false;
-	
+	public Priority priority = new Priority();
 	public HashMap<String, Integer> schedule = new HashMap<String, Integer>();
 
+	
+	public static class Priority {
+		public int getFolderMD = 1000;
+		public int getDocMD = 900;
+		public int getContent = 800;
+		
+		public int folderDelta = 10;
+	}
+	
 	public static class FilenetConfig  extends Model {
 		public String userid = "";
 		public String password = "";

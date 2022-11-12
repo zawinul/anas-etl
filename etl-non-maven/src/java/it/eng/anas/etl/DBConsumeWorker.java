@@ -39,7 +39,7 @@ public class DBConsumeWorker extends Worker {
 		mapper = Utils.getMapper();
 		while(true) {
 			if (exitRequest) {
-				status = "exit request";
+				workerStatus = "exit request";
 				break;
 			}
 			singleStep();
@@ -49,7 +49,7 @@ public class DBConsumeWorker extends Worker {
 
 	public void onJob(DBJob job) throws Exception {
 		log("onJob "+job);
-		status = "on job "+job.id+" "+job.operation;
+		workerStatus = "on job "+job.id+" "+job.operation;
 		Utils.shortPause();
 	}
 
@@ -57,8 +57,8 @@ public class DBConsumeWorker extends Worker {
 		DBJob job = jobManager.extract(queueName);
 		currentJob = job;
 		if (job==null) {
-			status = "coda vuota";
-			Utils.longPause();
+			workerStatus = "coda vuota";
+			//Utils.longPause();
 			//log("Coda vuota: "+queueName);
 			return;
 		}
@@ -66,7 +66,7 @@ public class DBConsumeWorker extends Worker {
 		log("onMessage "+job.operation);
 		
 		try {
-			status = "on job "+job.id;
+			workerStatus = "on job "+job.id;
 			onJob(job);
 			log("ok");
 			jobManager.ack(job, "ok");
@@ -75,7 +75,7 @@ public class DBConsumeWorker extends Worker {
 		catch (Exception e) {
 			log("error on receive BL: "+e.getMessage());
 			jobManager.nack(job, Utils.getStackTrace(e));
-			status = e.getMessage();
+			workerStatus = e.getMessage();
 			throw e;
 		}
 		finally {

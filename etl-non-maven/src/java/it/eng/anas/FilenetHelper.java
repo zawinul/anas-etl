@@ -352,6 +352,27 @@ public class FilenetHelper {
 		return ret;
 	}
 
+
+
+	public List<String[]>  getSubfoldersIdAndPath(String objectStore, String path) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
+		PropertyFilter pf = new PropertyFilter();
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.SUB_FOLDERS, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.PATH_NAME, null));
+		Folder f = Factory.Folder.fetchInstance(os, path, pf);
+		@SuppressWarnings("unchecked")
+		List<Folder> sublist = getList(f.get_SubFolders().iterator());
+		List<String[]> ret = new ArrayList<String[]>();
+		for(Folder sub: sublist) {
+			ret.add(new String[]{sub.get_Id().toString(), sub.get_PathName()});
+		}
+		return ret;
+	}
+
 //	public List<String>  getRecursiveFolders(String objectStore, String path) throws Exception {
 //		ObjectStore os = getOS(objectStore);
 //		if (os==null)

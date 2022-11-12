@@ -17,7 +17,7 @@ async function showReport() {
 	tbody.empty();
 	for (var i = 0; i < data.workers.length; i++) {
 		let d = data.workers[i];
-		let job = d.job || { operation: '-', key1: '-', key2: '-', key3: '-', status: '-', priority: '-', nretry: '-' };
+		let job = d.job || { operation: '-', key1: '-', key2: '-', key3: '-', lock: '-', priority: '-', nretry: '-' };
 		let div = $('<div/>').addClass('job-desc').appendTo('.workers');
 		var row = $(`<tr>
 			<td class="tag">${d.tag}</td>
@@ -27,7 +27,7 @@ async function showReport() {
 			<td class="par1">${job.key1}</td>
 			<td class="par2">${job.key2}</td>
 			<td class="par3">${job.key3}</td>
-			<td class="status">${d.status}</td>
+			<td class="lock">${d.status}</td>
 		</tr>`).appendTo(tbody);
 		row.attr('title', JSON.stringify(d, null, 2));
 	}
@@ -47,7 +47,7 @@ async function showReport() {
 
 	$('<b style="margin-right:20px">by status: </b>').appendTo('.db.status');
 	data.status
-		.map(x => x.queue + ':' + x.status + ": " + x.count)
+		.map(x => x.queue + ':' + x.locktag + ": " + x.count)
 		.map(txt => $('<div/>').text(txt).appendTo('.db.status'));
 
 	$('.connections').empty();
@@ -152,34 +152,51 @@ function startScanProgetti() {
 		error => alert(error)
 	);
 }
+
 function startScanLavori() {
 	var os = "PDM";
+
 	var path = "/wbs/lavori";
 	var folderId = "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}";
-	var maxrecursion = 1;
-	var withdoc = 0;
-	var withcontent = 0;
-	var msg = JSON.stringify({ os, folderId, maxrecursion, withdoc, withcontent }, null, 4);
-	var ok = confirm(msg);
-	if (!ok)
-		return;
-	var data = {
-		queue: 'anas-etl',
-		operation: 'getFolderMD',
-		priority: '1000',
-		key1: os,
-		key2: path,
-		body: JSON.stringify({ os, path,maxrecursion, withdoc, withcontent })
+	launch(path, folderId); 
+
+	var path = "/wbs/progetti";
+	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
+	launch(path, folderId); 
+
+
+//	var path = "/dbs/lavori/BAUP00051.1";
+//	var folderId = "{F0544477-0000-C613-B183-A848ED9C7F8E}";
+
+	function launch(path, folderId) {
+		var maxrecursion = 100;
+		var withdoc = 1;
+		var withcontent = 0;
+		var msg = JSON.stringify({ os, folderId, maxrecursion, withdoc, withcontent }, null, 4);
+		var ok = confirm(msg);
+		if (!ok)
+			return;
+		var data = {
+			queue: 'anas-etl',
+			operation: 'getFolderMD',
+			priority: '1000',
+			key1: os,
+			key2: path,
+			key3: "0",
+			body: JSON.stringify({ os, folderId,maxrecursion, withdoc, withcontent })
+		}
+		var params = [];
+		for (var field in data) {
+			var val = encodeURIComponent(data[field]);
+			params.push(field + '=' + val);
+		}
+		var url = 'insertJob?' + params.join('&');
+		$.get(url).promise().then(
+			ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
+			error => alert(error)
+		);
 	}
-	var params = [];
-	for (var field in data) {
-		var val = encodeURIComponent(data[field]);
-		params.push(field + '=' + val);
-	}
-	var url = 'insertJob?' + params.join('&');
-	$.get(url).promise().then(
-		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
-		error => alert(error)
-	);
 }
+
+
 $(init);

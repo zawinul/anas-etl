@@ -32,8 +32,8 @@ public class StatusReport {
 		"done", "SELECT count(*) as count FROM job_done",	
 		"error", "SELECT count(*) as count FROM job_error",	
 		"operation", "SELECT queue,operation,count(*) as count FROM job group by queue,operation",	
-		"status", "SELECT queue,status,count(*) as count FROM job group by queue,status",	
-		"retry", "SELECT queue,status,nretry,count(*) as count FROM job group by queue,nretry,status"	
+		"status", "SELECT queue,locktag,count(*) as count FROM job group by queue,locktag",	
+		"retry", "SELECT queue,nretry,count(*) as count FROM job group by queue,nretry"	
 	};
 	
 	
@@ -101,7 +101,7 @@ public class StatusReport {
 	        jgen.writeNumberField("priority", value.priority);
 	        jgen.writeStringField("tag", value.tag);
 	        jgen.writeStringField("queue", value.queueName);
-	        jgen.writeStringField("status", value.status);
+	        jgen.writeStringField("status", value.workerStatus);
 	        jgen.writeBooleanField("closed", value.closed);
 	        jgen.writeEndObject();
 	    }

@@ -2,8 +2,8 @@ CREATE TABLE tablename (
 	jobid int(10) not NULL,
 	priority int(10),
 	nretry int(10),
-	status varchar(20),
-	queue varchar(50),
+	locktag varchar(6),
+	queue varchar(20),
 	operation varchar(50),
 	key1 varchar(500),
 	key2 varchar(500),
@@ -15,5 +15,5 @@ CREATE TABLE tablename (
 	duration   int(10),
 
 	body varchar(500),
-	output varchar(1000)
+	output varchar(500)
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
