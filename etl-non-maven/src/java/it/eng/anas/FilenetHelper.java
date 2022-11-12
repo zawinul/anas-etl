@@ -195,6 +195,38 @@ public class FilenetHelper {
 		return ret;
 	}
 
+	
+
+	public List<String[]>  getDbsInfo(String objectStore, String id) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
+
+		PropertyFilter pf = new PropertyFilter();
+		pf.setMaxRecursion(0);
+
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, "titolo", null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.PATH_NAME, null));
+		pf.addIncludeProperty(new FilterElement(0, null, null, PropertyNames.SUB_FOLDERS, null));
+		Folder f = Factory.Folder.fetchInstance(os, new Id(id), pf);
+		
+		List<Folder> sublist = getList(f.get_SubFolders().iterator());
+		List<String[]> ret = new ArrayList<String[]>();
+		for(Folder sub: sublist) {
+			FolderImpl s = (FolderImpl) sub;
+			Property p = s.getProperty("titolo");
+			String row[] = {
+				s.get_Id().toString(),
+				s.get_PathName(),
+				p == null ? "-" : p.getStringValue()
+			};
+			ret.add(row);
+		}
+		return ret;
+	}
+
 	public ObjectNode  getDocumentMetadata(String objectStore, String id) throws Exception {
 		ObjectStore os = getOS(objectStore);
 		if (os==null)

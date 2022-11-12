@@ -2,6 +2,7 @@ package it.eng.anas.etl;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -25,7 +26,8 @@ public class AnasEtlJobProcessor  {
 		this.caller = caller;
 	}
 	
-	public void process(DBJob job) throws Exception {
+	public void process(DBJob dbjob) throws Exception {
+		AnasEtlJob job = (AnasEtlJob) dbjob;
 		if (job.operation.equals("getFolderMD"))
 			getFolderMD(job);
 		else if (job.operation.equals("getDocMD"))
@@ -33,49 +35,58 @@ public class AnasEtlJobProcessor  {
 		else if (job.operation.equals("getContent"))
 			getContent(job);
 
-
+		
 		else if (job.operation.equals("getClassStruct"))
 			getClassStruct(job);
 		
+		else if (job.operation.equals("getListaDbs"))
+			getListaDbs(job);
 		else {
 			throw new Exception("operation non riconosciuta: "+job.operation+", job="+Utils.getMapperOneLine().writeValueAsString(job));
 		}
 		
 	}
 
-	private void getFolderMD(DBJob job) throws Exception {
-		Body body = caller.mapper.readValue(job.body, Body.class);
-		if (body.folderId!=null)
+	private void getFolderMD(AnasEtlJob job) throws Exception {
+		if (job.folderId!=null)
 			getFolderMDById(job);
-		else
-			getFolderMDByPath(job);
+//		else
+//			getFolderMDByPath(job);
 	}
 	
-	private void getClassStruct(DBJob job) throws Exception {
-		Body body = caller.mapper.readValue(job.body, Body.class);
+	private void getClassStruct(AnasEtlJob job) throws Exception {
 		
 	}
 	
-	private void getFolderMDByPath(DBJob job) throws Exception {
-		Config config = Utils.getConfig();
-		Body body = caller.mapper.readValue(job.body, Body.class);
-		String os = body.os;
-		String path = body.path;
-		String outpath = folderMdPath(os, path);
-		if (new File(outpath).exists()) {
-			job.output ="già estratto";
-			return;
-		}
+	private void getListaDbs(AnasEtlJob job) throws Exception {
 		FilenetHelper fnet = caller.getFilenetHelper();
-		DbJobManager jobManager = caller.getJobManager();
-		ObjectNode node = fnet.getFolderMetadataByPath(os, path, body.withdoc);
+		List<String[]> infos = fnet.getDbsInfo(job.os, job.folderId);
+		String ret = "";
+		for(String[] row: infos) {
+			String r0 = row[0].replace("\n", " ").replace("|", " ");
+			String r1 = row[1].replace("\n", " ").replace("|", " ");
+			String r2 = row[2].replace("\n", " ").replace("|", " ");
+			ret+=r0+"|"+r1+"|"+r2+"\n";
+		}
+		fileHelper.save("liste/"+job.key1+".txt", ret);
+	}
+	
+	/*
+	private void getFolderMDByPath(AnasEtlJob job) throws Exception {
+		Config config = Utils.getConfig();
+		String os = job.os;
+		String path = job.path;
+
+		FilenetHelper fnet = caller.getFilenetHelper();
+		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
+		ObjectNode node = fnet.getFolderMetadataByPath(os, path, job.withdoc);
 		fileHelper.saveJsonObject(outpath, node);
 		int level = 0;
 		try {
 			level = Integer.parseInt(job.key3);
 		}catch(Exception e) {}
 		
-		if (body.maxrecursion>0) {
+		if (job.maxrecursion>0) {
 			
 			List<String> children = fnet.getSubfoldersPaths(os, path);
 			
@@ -84,29 +95,22 @@ public class AnasEtlJobProcessor  {
 				if (new File(childpath).exists()) 
 					continue;
 
-				ObjectNode newbody = JSON.object(
-					"os",           os,
-					"path",         child,
-					"maxrecursion", body.maxrecursion-1,
-					"withdoc",      body.withdoc,
-					"withcontent",  body.withcontent
-				);
-
+				AnasEtlJob newjob = AnasEtlJob.clone(job)
 				
-				jobManager.insertNew(
-					job.queue, // queue
-					job.priority+config.priority.folderDelta, // priority
-					"getFolderMD", // operation
-					os, // key1
-					child, // key2
-					(level+1)+"", // key3
-					job.id, //parentJob,
-					JSON.string(newbody) // body
-				);
+					.withPriority(job.priority+config.priority.folderDelta)
+					.withOperation("getFolderMD")
+					.withKeys(os,  child, (level+1)+"")
+					.withParentJob(job.id)
+					
+					.withPath(child)
+					.withMaxrecursion(job.maxrecursion-1)
+				;
+				
+				jobManager.insertNew(newjob);
 			}
 		}
 		
-		if (body.withdoc) {
+		if (job.withdoc) {
 			ArrayNode arr = (ArrayNode) node.get("__documents__");
 			if (arr.size()>0) {
 				String docListPath = folderDocListPath(os, path);
@@ -119,49 +123,57 @@ public class AnasEtlJobProcessor  {
 					Log.etl.log(docId+" già presente");
 					continue;
 				}
-				ObjectNode newbody = JSON.object(
-					"os",          os,
-					"path",        path,
-					"docId",       docId,
-					"withcontent", body.withcontent
-				);
+//				ObjectNode newbody = JSON.object(
+//					"os",          os,
+//					"path",        path,
+//					"docId",       docId,
+//					"withcontent", job.withcontent
+//				);
+//
+//				jobManager.insertNew(
+//						job.queue, // queue
+//						config.priority.getDocMD, // priority
+//						"getDocMD", // operation
+//						os, // key1
+//						path, // key2
+//						docId, // key3
+//						job.id, //parentJob,
+//						JSON.string(newbody) // body
+//				);
+				
+				AnasEtlJob newjob = AnasEtlJob.clone(job)
+					.withOperation("getDocMD")
+					.withPath(path)
+					.withDocId(docId)
+					.withKeys(os, path, docId)
+					.withPriority(config.priority.getDocMD)
+					.withParentJob(job.id);
+				jobManager.insertNew(newjob);
 
-				jobManager.insertNew(
-						job.queue, // queue
-						config.priority.getDocMD, // priority
-						"getDocMD", // operation
-						os, // key1
-						path, // key2
-						docId, // key3
-						job.id, //parentJob,
-						JSON.string(newbody) // body
-				);
 
 			}
 		}
 	}
+	*/
 	
-	
-	private void getFolderMDById(DBJob job) throws Exception {
+	private void getFolderMDById(AnasEtlJob job) throws Exception {
 		Config config = Utils.getConfig();
-		Body body = caller.mapper.readValue(job.body, Body.class);
-		String os = body.os;
-		String id = body.folderId;
-//		String outpath = folderMdPath(os, id);
-//		if (new File(outpath).exists()) {
-//			job.output ="già estratto";
-//			return;
-//		}
+		String os = job.os;
+		String id = job.folderId;
+
 		FilenetHelper fnet = caller.getFilenetHelper();
-		DbJobManager jobManager = caller.getJobManager();
-		ObjectNode node = fnet.getFolderMetadataById(os, id, body.withdoc);
+		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
+		ObjectNode node = fnet.getFolderMetadataById(os, id, job.withdoc);
 		String path = node.get("PathName").asText();
 		//String outpath = folderMdPath(os, id);
-		String outpath = folderMdPath(os, path);
+		String dirPath = os+"/"+path;
 
+		boolean isDbsParent = path.split("/").length == 2;
 		boolean isDbs = path.split("/").length == 3;
 		if (isDbs)
-			fileHelper.saveJsonObject(outpath, node);
+			fileHelper.saveJsonObject(dirPath+"/folder-metadata.json", node);
+		else
+			fileHelper.getDir(dirPath);
 
 		int level = 0;
 		try {
@@ -169,49 +181,48 @@ public class AnasEtlJobProcessor  {
 		}catch(Exception e) {}
 
 		
-		if (body.maxrecursion>0) {
+		if (job.maxrecursion>0) {
 			
 			List<String[]> children = fnet.getSubfoldersIdAndPath(os, id);
-			if (path.equals("/dbs/lavori"))
-				children = children.subList(0, 10);
-			if (path.equals("/dbs/progetti"))
-				children = children.subList(0, 10);
+			if (path.equals("/dbs/lavori") || path.equals("/dbs/progetti")) {
+				// ne seleziono n a caso
+				List<String[]> saved = children;
+				children = new ArrayList<String[]>();
+				for(int i=0; i<10; i++) {
+					int sel = (int) (Math.floor(Math.random()*saved.size()));
+					children.add(saved.get(sel));
+					saved.remove(sel);
+				}
+			}
 			
-			for(String child[]: children) {
+			for(int i=0; i<children.size(); i++) {
+				String child[] = children.get(i);
 				String cId = child[0];
 				String cPath = child[1];
-				String childpath =  folderMdPath(os, cPath);
-				if (new File(childpath).exists()) 
-					continue;
-
-				ObjectNode newbody = JSON.object(
-					"os",           os,
-					"folderId",     cId,
-					"maxrecursion", body.maxrecursion-1,
-					"withdoc",      body.withdoc,
-					"withcontent",  body.withcontent
-				);
-
+				int nextPriority = 0;
+				if (isDbsParent)
+					nextPriority = 1000000-i*1000;
+				else
+					nextPriority = job.priority-100;
 				
-				jobManager.insertNew(
-					job.queue, // queue
-					job.priority+config.priority.folderDelta, // priority
-					"getFolderMD", // operation
-					os, // key1
-					cPath, // key2
-					""+(level+1), // key3
-					job.id, //parentJob,
-					JSON.string(newbody) // body
-				);
+				AnasEtlJob newjob = AnasEtlJob.clone(job)
+					.withOperation("getFolderMD")
+					.withFolderId(cId)
+					.withMaxrecursion(job.maxrecursion-1)
+					.withPriority(nextPriority)
+					.withKeys(os,  cPath,  ""+(level+1))
+					.withParentJob(job.id);
+
+				jobManager.insertNew(newjob);
 			}
 		}
 		
-		if (body.withdoc) {
+		if (job.withdoc) {
 			ArrayNode arr = (ArrayNode) node.get("__documents__");
-			if (arr.size()>0) {
-				String docListPath = folderDocListPath(os, path);
-				fileHelper.saveJsonObject(docListPath, arr);
-			}
+//			if (arr.size()>0) {
+//				String docListPath = folderDocListPath(os, path);
+//				fileHelper.saveJsonObject(docListPath, arr);
+//			}
 			for(int i=0; i<arr.size(); i++) {
 				String docId = arr.get(i).asText();
 //				String docPath = docMdPath(os, docId);
@@ -219,33 +230,25 @@ public class AnasEtlJobProcessor  {
 //					Log.etl.log(docId+" già presente");
 //					continue;
 //				}
-				ObjectNode newbody = JSON.object(
-					"os",          os,
-					"path",        path,
-					"docId",       docId,
-					"withcontent", body.withcontent
-				);
+				int nextPriority = job.priority-5;
 
-				jobManager.insertNew(
-						job.queue, // queue
-						config.priority.getDocMD, // priority
-						"getDocMD", // operation
-						os, // key1
-						path, // key2
-						docId, // key3
-						job.id, //parentJob,
-						JSON.string(newbody) // body
-				);
-
+				AnasEtlJob newjob = AnasEtlJob.clone(job)
+					.withOperation("getDocMD")
+					.withPriority(nextPriority)
+					.withPath(path)
+					.withDocId(docId)
+					.withKeys(os,  path,  docId)
+					.withParentJob(job.id);
+	
+				jobManager.insertNew(newjob);
 			}
 		}
 	}
 
-	private void getDocMD(DBJob job) throws Exception {
+	private void getDocMD(AnasEtlJob job) throws Exception {
 		Config config = Utils.getConfig();
-		Body body = caller.mapper.readValue(job.body, Body.class);
-		String os = body.os;
-		String docId = body.docId;
+		String os = job.os;
+		String docId = job.docId;
 
 //		String outpath = docMdPath(os, docId);
 //		if (new File(outpath).exists()) {
@@ -255,72 +258,62 @@ public class AnasEtlJobProcessor  {
 		
 		
 		FilenetHelper fnet = caller.getFilenetHelper();
-		DbJobManager jobManager = caller.getJobManager();
+		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
 		ObjectNode node = fnet.getDocumentMetadata(os, docId);
 		
-		String outpath = os+"/"+body.path+"/"+docId+".json";
+		String outpath[] = docMdPath(os, docId, job.path);
+		for(String p: outpath)	
+			fileHelper.saveJsonObject(p, node);
 		
-		fileHelper.saveJsonObject(outpath, node);
-		if (body.withcontent) {
-			ObjectNode newbody = JSON.object(
-				"os",    os,
-				"path",  body.path,
-				"docId", body.docId
-			);
+		if (job.withcontent) {
+			int nextPriority = job.priority-5;
 
-			jobManager.insertNew(
-					job.queue, // queue
-					config.priority.getContent, // priority
-					"getContent", // operation
-					os,         // key1
-					body.path,  // key2
-					docId,      // key3
-					job.id,     //parentJob,
-					JSON.string(newbody) // body
-			);
-			
+			AnasEtlJob newjob = AnasEtlJob.clone(job)
+				.withOperation("getContent")
+				.withPriority(nextPriority)
+				.withPath(job.path)
+				.withDocId(job.docId)
+				.withKeys(os, job.path, docId)
+				.withParentJob(job.id);
+
+			jobManager.insertNew(newjob);
 		}
 	}
 	
-	private void getContent(DBJob job) throws Exception {
-		Body body = caller.mapper.readValue(job.body, Body.class);
+	private void getContent(AnasEtlJob job) throws Exception {
 		
 		FilenetHelper fnet = caller.getFilenetHelper();
-		List<ContentTransfer> contents = fnet.getContentTransfer(body.os, body.docId);
+		List<ContentTransfer> contents = fnet.getContentTransfer(job.os, job.docId);
 		for(ContentTransfer ct: contents) {
 			String filename = ct.get_RetrievalName();
 			InputStream s = ct.accessContentStream();
-			String outpath = contentPath(body.os, body.docId, filename);
-			fileHelper.save(outpath, s);
+			String outpath[] = contentPath(job.os, job.docId, filename);
+			for(String p: outpath)
+				fileHelper.save(p, s);
 		}
 		
 	}
 	
-	private String folderMdPath(String os, String path) {
-		return os+"/"+path+"/folder-metadata.json";
-	}
+//	private String folderMdPath(String os, String path) {
+//		return os+"/"+path+"/folder-metadata.json";
+//	}
 	
 	
-	private String folderDocListPath(String os, String path) {
-		return os+"/"+path+"/document-list.json";
+//	private String folderDocListPath(String os, String path) {
+//		return os+"/"+path+"/document-list.json";
+//	}
+
+	private String[] docMdPath(String os, String docId, String path) {
+		return new String[] {
+			os+"/"+path+"/"+docId+".json",
+			os+"/_documents/"+docId.substring(1,4)+"/"+docId+".metadata.json"
+		};
 	}
 
-	private String docMdPath(String os, String docId) {
-		return os+"/_documents/"+docId.substring(1,4)+"/"+docId+".metadata.json";
-	}
-
-	private String contentPath(String os, String docId, String rname) {
-		return os+"/_documents/"+docId.substring(1,4)+"/"+docId+"."+rname;
-	}
-	
-	public static class Body {
-		public String os = null;
-		public String folderId;
-		public String docId;
-		public String path = null;
-		public Integer maxrecursion = null;
-		public Boolean withdoc = null;
-		public Boolean withcontent = null;
+	private String[] contentPath(String os, String docId, String rname) {
+		return new String[] {
+			os+"/_documents/"+docId.substring(1,4)+"/"+docId+"."+rname
+		};
 	}
 	
 

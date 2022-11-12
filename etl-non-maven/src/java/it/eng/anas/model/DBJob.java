@@ -21,7 +21,6 @@ public class DBJob extends Model {
 	public int parent_job;
 	public int duration;
 	
-	public String body;
 	public String output;
 	
 
@@ -42,8 +41,8 @@ public class DBJob extends Model {
 		this.last_change = last_change;
 		this.parent_job = parent_job;
 		this.duration = duration;
-		this.body = body;
 	}
-
+	
+	
 
 }

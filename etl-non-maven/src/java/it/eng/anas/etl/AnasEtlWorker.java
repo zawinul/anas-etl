@@ -14,7 +14,7 @@ public class AnasEtlWorker extends DBConsumeWorker  {
 	public ObjectMapper mapper = Utils.getMapper();
 	
 	public AnasEtlWorker(String tag, String queueName, int priority) {
-		super(tag, queueName, priority);
+		super(tag, queueName, priority, AnasEtlJob.class);
 		processor = new AnasEtlJobProcessor(this);
 	}
 	
@@ -27,7 +27,7 @@ public class AnasEtlWorker extends DBConsumeWorker  {
 	}
 
 	
-	public DbJobManager getJobManager() throws Exception {
+	public DbJobManager<AnasEtlJob> getJobManager() throws Exception {
 		return jobManager;
 	}
 

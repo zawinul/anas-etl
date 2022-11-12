@@ -121,82 +121,120 @@ function startScan() {
 
 }
 
-function startScanProgetti() {
-	var os = "PDM";
-	var path = "/wbs/progetti";
-	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
+// function startScanProgetti() {
+// 	var os = "PDM";
+// 	var path = "/wbs/progetti";
+// 	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
 	
-	var maxrecursion = 1;
-	var withdoc = 0;
-	var withcontent = 0;
-	var msg = JSON.stringify({ os, folderId, maxrecursion, withdoc, withcontent }, null, 4);
-	var ok = confirm(msg);
-	if (!ok)
-		return;
-	var data = {
-		queue: 'anas-etl',
-		operation: 'getFolderMD',
-		priority: '1000',
-		key1: os,
-		key2: path,
-		body: JSON.stringify({ os, path,maxrecursion, withdoc, withcontent })
-	}
-	var params = [];
-	for (var field in data) {
-		var val = encodeURIComponent(data[field]);
-		params.push(field + '=' + val);
-	}
-	var url = 'insertJob?' + params.join('&');
-	$.get(url).promise().then(
-		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
-		error => alert(error)
-	);
-}
+// 	var maxrecursion = 1;
+// 	var withdoc = 0;
+// 	var withcontent = 0;
+// 	var msg = JSON.stringify({ os, folderId, maxrecursion, withdoc, withcontent }, null, 4);
+// 	var ok = confirm(msg);
+// 	if (!ok)
+// 		return;
+// 	var data = {
+// 		queue: 'anas-etl',
+// 		operation: 'getFolderMD',
+// 		priority: '1000',
+// 		key1: os,
+// 		key2: path,
+// 		body: JSON.stringify({ os, path,maxrecursion, withdoc, withcontent })
+// 	}
+// 	var params = [];
+// 	for (var field in data) {
+// 		var val = encodeURIComponent(data[field]);
+// 		params.push(field + '=' + val);
+// 	}
+// 	var url = 'insertJob?' + params.join('&');
+// 	$.get(url).promise().then(
+// 		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
+// 		error => alert(error)
+// 	);
+// }
 
 function startScanLavori() {
 	var os = "PDM";
 
-	var path = "/wbs/lavori";
+	var path = "/dbs/lavori";
 	var folderId = "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}";
-	launch(path, folderId); 
+	launch(path, folderId,1000000); 
 
-	var path = "/wbs/progetti";
+	var path = "/dbs/progetti";
 	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
-	launch(path, folderId); 
+	launch(path, folderId, 1000000); 
 
 
 //	var path = "/dbs/lavori/BAUP00051.1";
 //	var folderId = "{F0544477-0000-C613-B183-A848ED9C7F8E}";
 
-	function launch(path, folderId) {
-		var maxrecursion = 100;
-		var withdoc = 1;
-		var withcontent = 0;
-		var msg = JSON.stringify({ os, folderId, maxrecursion, withdoc, withcontent }, null, 4);
-		var ok = confirm(msg);
-		if (!ok)
-			return;
-		var data = {
+	function launch(path, folderId, priority) {
+		let job = {
 			queue: 'anas-etl',
 			operation: 'getFolderMD',
-			priority: '1000',
+			priority,
 			key1: os,
 			key2: path,
 			key3: "0",
-			body: JSON.stringify({ os, folderId,maxrecursion, withdoc, withcontent })
-		}
-		var params = [];
-		for (var field in data) {
-			var val = encodeURIComponent(data[field]);
-			params.push(field + '=' + val);
-		}
-		var url = 'insertJob?' + params.join('&');
-		$.get(url).promise().then(
+			os, 
+			folderId,
+			maxrecursion: 100, 
+			withdoc: 1, 
+			withcontent: 0 
+		};
+
+		var msg = JSON.stringify(job, null, 4);
+		if (!confirm(msg))
+			return;
+
+		$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
 			ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
 			error => alert(error)
 		);
 	}
 }
+
+
+
+function wait(ms) {
+	return new Promise(function(resolve,reject){
+		setTimeout(resolve,ms);
+	});
+}
+
+async function getListeDbs() {
+	var os = "PDM";
+
+	var path = "/dbs/lavori";
+	var folderId = "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}";
+	launch(folderId, "lavori"); 
+	await wait(1000);
+	var path = "/dbs/progetti";
+	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
+	launch(folderId, "progetti"); 
+
+
+	function launch(folderId, tag) {
+		let job = {
+			queue: 'anas-etl',
+			operation: 'getListaDbs',
+			priority: 100,
+			key1: tag,
+			key2: folderId,
+			key3: tag,
+			os, 
+			folderId,
+			maxrecursion: 100, 
+			withdoc: 0, 
+			withcontent: 0 
+		};
+		$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+			ok => console.log(JSON.stringify(JSON.parse(ok), null, 2)),
+			error => alert(error)
+		);
+	}
+}
+
 
 
 $(init);

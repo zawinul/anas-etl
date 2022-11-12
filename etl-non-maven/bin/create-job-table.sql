@@ -14,6 +14,6 @@ CREATE TABLE tablename (
 	parent_job int(10),
 	duration   int(10),
 
-	body varchar(500),
+	body varchar(2000),
 	output varchar(500)
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

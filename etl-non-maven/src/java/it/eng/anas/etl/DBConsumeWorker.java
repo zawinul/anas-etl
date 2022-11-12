@@ -7,25 +7,27 @@ import it.eng.anas.db.DbJobManager;
 import it.eng.anas.model.DBJob;
 import it.eng.anas.threads.Worker;
 
-public class DBConsumeWorker extends Worker {
+public class DBConsumeWorker<T extends DBJob> extends Worker {
 	public String queueName;
 	public ObjectMapper mapper;
-	public DbJobManager jobManager;
+	public DbJobManager<T> jobManager;
 	public boolean closed = false;
 	public int waitOnBusy = 500;
-	public DBJob currentJob;
-	
+	public T currentJob;
+	private Class<T> tclass; 
+
 	public void log(String msg) {
 		if(currentJob!=null)
 			super.log("job-"+currentJob.id+":"+msg);
 	}
 
-	public DBConsumeWorker(String tag, String queueName, int priority) {
+	public DBConsumeWorker(String tag, String queueName, int priority, Class<T> tclass) {
 
 		super(tag, priority);
+		this.tclass = tclass;
 		this.queueName = queueName;
 		
-		jobManager = new DbJobManager(tag);
+		jobManager = new DbJobManager<T>(tag, tclass);
 		final DBConsumeWorker t = this;
 		cleanup.add(new Runnable() {
 			public void run() {
@@ -47,18 +49,18 @@ public class DBConsumeWorker extends Worker {
 		log("end");
 	}
 
-	public void onJob(DBJob job) throws Exception {
+	public void onJob(T job) throws Exception {
 		log("onJob "+job);
 		workerStatus = "on job "+job.id+" "+job.operation;
 		Utils.shortPause();
 	}
 
 	private void singleStep() throws Exception {
-		DBJob job = jobManager.extract(queueName);
+		T job = jobManager.extract(queueName);
 		currentJob = job;
 		if (job==null) {
 			workerStatus = "coda vuota";
-			//Utils.longPause();
+			Utils.shortPause();
 			//log("Coda vuota: "+queueName);
 			return;
 		}

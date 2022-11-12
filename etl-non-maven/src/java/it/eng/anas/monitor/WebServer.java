@@ -8,6 +8,7 @@ import it.eng.anas.Event;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
+import it.eng.anas.etl.AnasEtlJob;
 import it.eng.anas.model.Config;
 import it.eng.anas.model.DBJob;
 import it.eng.anas.threads.ThreadManager;
@@ -57,18 +58,11 @@ public class WebServer {
 			return new StatusReport().getReport();
 		});
 
-		spark.Spark.get("/insertJob", (req, res) -> {
-			DbJobManager manager = new DbJobManager("insertJob");
-			String queue = req.queryParams("queue");
-			int priority = Integer.parseInt(req.queryParams("priority"));
-			String operation  = req.queryParams("operation");		
-			String key1  = n(req.queryParams("key1"));		
-			String key2  = n(req.queryParams("key2"));		
-			String key3  = n(req.queryParams("key3"));		
-			String sParentJob  = n(req.queryParams("parentJob"));	
-			int parentJob = sParentJob==null ? -1 : Integer.parseInt(sParentJob);
-			String body  = n(req.queryParams("body"));		
-			DBJob job = manager.insertNew(queue,priority,operation,key1, key2, key3, parentJob, body);
+		spark.Spark.post("/insertJob", (req, res) -> {
+			DbJobManager<AnasEtlJob> manager = new DbJobManager("insertJob", AnasEtlJob.class);
+			String json = req.body();
+			AnasEtlJob input = Utils.getMapper().readValue(json, AnasEtlJob.class);
+			AnasEtlJob job = manager.insertNew(input);
 			manager.close();
 			return Utils.getMapper().writeValueAsString(job);
 		});
