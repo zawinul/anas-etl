@@ -2,12 +2,19 @@ package it.eng.anas.monitor;
 
 
 import java.io.FileWriter;
+import java.sql.Connection;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import it.eng.anas.Event;
+import it.eng.anas.Global;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
+import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.DbJobManager;
+import it.eng.anas.db.ResultSetToJson;
+import it.eng.anas.db.SimpleDbOp;
 import it.eng.anas.etl.AnasEtlJob;
 import it.eng.anas.model.Config;
 import it.eng.anas.model.DBJob;
@@ -21,7 +28,10 @@ public class WebServer {
 	public Runnable onKill;
 	public void start() {
 		Config c = Utils.getConfig();
-		spark.Spark.port(c.webServerPort);
+		int port = Global.get("webport")!=null
+				? (Integer) Global.get("webport")
+				: c.webServerPort;
+		spark.Spark.port(port);
 		spark.Spark.staticFileLocation("/web");
 		spark.Spark.get("/hello", (req, res) -> {
 			Log.web.log(req.url().toString());
@@ -75,6 +85,25 @@ public class WebServer {
 			String docClass = req.params("class");
 			Event.emit("start-simulation", docClass);
 			return "ok";
+		});
+
+
+		spark.Spark.post("/sql", (req, res) -> {
+			try {
+				String query = req.body();
+				Connection conn = DBConnectionFactory.defaultFactory.getConnection("web");
+				SimpleDbOp op = new SimpleDbOp(conn)
+					.query(query)
+					.executeQuery();
+				ResultSetToJson js = new  ResultSetToJson();
+				ArrayNode extract = js.extract(op.getResultSet());
+				op.close();
+				DBConnectionFactory.close(conn);
+				return Utils.getMapper().writeValueAsString(extract);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return e.getMessage();
+			}
 		});
 
 		spark.Spark.get("/exit", (req, res) -> {

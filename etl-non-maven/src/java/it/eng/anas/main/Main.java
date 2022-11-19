@@ -2,6 +2,7 @@ package it.eng.anas.main;
 
 
 import it.eng.anas.Event;
+import it.eng.anas.Global;
 import it.eng.anas.Utils;
 import it.eng.anas.etl.AnasEtlWorkerFactory;
 import it.eng.anas.monitor.WebServer;
@@ -45,6 +46,11 @@ public class Main {
 	
 	public static void main(String args[]) {
 		System.out.println("starting main");
+		Global.set("args", args);
+		for(int i=0; i<args.length-1; i++)
+			if (args[i].equals("-webport"))
+				Global.set("webport", Integer.parseInt(args[i+1]));
+		
 		new Main().execute();
 		
 		System.out.println("end of main");

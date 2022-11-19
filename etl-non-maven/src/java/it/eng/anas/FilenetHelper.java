@@ -71,7 +71,7 @@ public class FilenetHelper {
 		"Permissions",
 		"Parent",
 		"Annotations",
-		"ClassDescription",
+		//"ClassDescription",
 		"This",
 		"WorkflowSubscriptions"
 	};
@@ -196,6 +196,64 @@ public class FilenetHelper {
 	}
 
 	
+	public static class FolderInfo {
+		public String id;
+		public String path;
+		public String name;
+		public List<SubFolderInfo> children = new ArrayList<SubFolderInfo>();
+		public List<String> docs = new ArrayList<String>();
+		
+	}
+	public static class SubFolderInfo {
+		public String id;
+		public String path;
+	}
+	
+	
+	public FolderInfo  traverseFolder(String objectStore, String id, boolean withChildren, boolean withDocs) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
+
+		PropertyFilter pf = new PropertyFilter();
+		pf.setMaxRecursion(0);
+		pf.addIncludeProperty(new FilterElement(2, null, null, PropertyNames.ID, null));
+		pf.addIncludeProperty(new FilterElement(2, null, null, PropertyNames.PATH_NAME, null));
+		pf.addIncludeProperty(new FilterElement(2, null, null, PropertyNames.NAME, null));
+		if (withChildren)
+			pf.addIncludeProperty(new FilterElement(null, null, null, PropertyNames.SUB_FOLDERS, null));
+		if (withDocs)
+			pf.addIncludeProperty(new FilterElement(null, null, null, PropertyNames.CONTAINED_DOCUMENTS, null));
+		if (withChildren)
+			pf.addIncludeProperty(new FilterElement(null, null, null, PropertyNames.CONTAINED_DOCUMENTS, null));
+		
+		
+		Folder f = Factory.Folder.fetchInstance(os, new Id(id), pf);
+		FolderInfo ret = new FolderInfo();
+		FolderImpl fi = (FolderImpl) f;
+		ret.id = fi.get_Id().toString();
+		ret.name = fi.get_Name();
+		ret.path = fi.get_PathName();
+		if (withDocs) {
+			Iterator<Document>  docIterator = fi.get_ContainedDocuments().iterator();
+			List<Document> docs = getList(docIterator);
+			for(Document doc: docs) 
+				ret.docs.add(doc.get_Id().toString());
+ 		}
+		if (withChildren) {		
+			Iterator<Folder>  childterator = fi.get_SubFolders().iterator();
+			List<Folder> children = getList(childterator );
+			for(Folder fold: children) { 
+				SubFolderInfo sub = new SubFolderInfo();
+				sub.id = fold.get_Id().toString();
+				sub.path = fold.get_PathName();
+				ret.children.add(sub);
+			}
+		}
+		return ret;
+	}
+
 
 	public List<String[]>  getDbsInfo(String objectStore, String id) throws Exception {
 		ObjectStore os = getOS(objectStore);
@@ -241,6 +299,7 @@ public class FilenetHelper {
 
 		Document doc = Factory.Document.fetchInstance(os, new Id(id), pf);
 		Properties props = doc.getProperties();
+
 		
 		@SuppressWarnings("unchecked")
 		Iterator<Property> iter1 = props.iterator();
@@ -250,6 +309,9 @@ public class FilenetHelper {
 			setJsonPropertyValue(prop, prop.getPropertyName(), ret);
 		}
 
+		ret.set("ClasseDocumentale_SymbolicName", mapper.valueToTree(doc.get_ClassDescription().get_SymbolicName()));
+		ret.set("Classe", mapper.valueToTree(doc.get_ClassDescription().get_DisplayName()));
+		
 		ContentElementList clist = doc.get_ContentElements();
 		@SuppressWarnings("unchecked")
 		Iterator<ContentTransfer> cIterator = clist.iterator(); 

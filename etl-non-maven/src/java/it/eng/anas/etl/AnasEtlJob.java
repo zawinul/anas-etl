@@ -14,6 +14,7 @@ public class AnasEtlJob extends DBJob {
 	public Integer maxrecursion = null;
 	public Boolean withdoc = null;
 	public Boolean withcontent = null;
+	public Boolean buildDir = false;
 	
 
 	

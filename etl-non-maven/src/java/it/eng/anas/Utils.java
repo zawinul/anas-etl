@@ -1,5 +1,6 @@
 package it.eng.anas;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -134,8 +135,11 @@ public class Utils {
 				jsonCfg = json;
 				Log.etl.log("Config changed: "+json);
 				cfg = getMapper().readValue(json, Config.class);
-				cfg.filenet.password = IOUtils.toString(new FileReader("./password.filenet"));
-				cfg.db.password = IOUtils.toString(new FileReader("./password.db"));
+				
+				if (new File("./password.filenet").exists())
+					cfg.filenet.password = IOUtils.toString(new FileReader("./password.filenet"));
+				if (new File("./password.db").exists())
+					cfg.db.password = IOUtils.toString(new FileReader("./password.db"));
 				Event.emit("config-change");
 			}
 		} catch (Exception e) {

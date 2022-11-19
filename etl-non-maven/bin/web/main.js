@@ -202,13 +202,17 @@ function wait(ms) {
 	});
 }
 
+const idProgetti = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
+const idLavori = "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}";
+const idArchivi = "{A29BECCA-3445-427B-AE7E-30A8185C1702}";
+
 async function getListeDbs() {
 	var os = "PDM";
 
 	var path = "/dbs/lavori";
 	var folderId = "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}";
 	launch(folderId, "lavori"); 
-	await wait(1000);
+	//await wait(1000);
 	var path = "/dbs/progetti";
 	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
 	launch(folderId, "progetti"); 
@@ -235,6 +239,96 @@ async function getListeDbs() {
 	}
 }
 
+async function getProgettoSingolo() {
+	var os = "PDM";
+
+	var path = "/dbs/progetti/LO.710.E.D.19.01";
+	var folderId = "{B35E558C-8317-4260-985B-C2B93B7B8A5A}";
+	let job = {
+		queue: 'anas-etl',
+		operation: 'getFolderMD',
+		priority: 10000,
+		key1: os,
+		key2: path,
+		key3: "0",
+		os, 
+		folderId,
+		maxrecursion: 100, 
+		withdoc: 1, 
+		withcontent: 0 
+
+	};
+	$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+		ok => console.log(JSON.stringify(JSON.parse(ok), null, 2)),
+		error => alert(error)
+	);
+	
+}
+
+
+// function startScanArchivi() {
+// 	var os = "PDMASD";
+// 	launch("/archivi", idArchivi, 1000000); 
+
+// 	function launch(path, folderId, priority) {
+// 		let job = {
+// 			queue: 'anas-etl',
+// 			operation: 'getFolderMD',
+// 			priority,
+// 			key1: os,
+// 			key2: path,
+// 			key3: "0",
+// 			os, 
+// 			folderId,
+// 			maxrecursion: 100, 
+// 			withdoc: 0, 
+// 			withcontent: 0,
+// 			buildDir: true
+// 		};
+
+// 		var msg = JSON.stringify(job, null, 4);
+// 		if (!confirm(msg))
+// 			return;
+
+// 		$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+// 			ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
+// 			error => alert(error)
+// 		);
+// 	}
+// }
+
+
+function startScanArchivi() {
+
+	let job = {
+		queue: 'anas-etl',
+		operation: 'startScanArchivi',
+		priority:1000000,
+		key1: "archivi",
+		key2: "",
+		key3: "",
+		withdoc: true, 
+		withcontent: false,
+		buildDir: true
+	};
+
+	var msg = JSON.stringify(job, null, 4);
+	if (!confirm(msg))
+		return;
+
+	$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
+		error => alert(error)
+	);
+}
+
+
+async function sql(query) {
+	$.post({url:'sql', data:query}).promise().then(
+		ok => console.log(ok),
+		error => alert(error)
+	);
+}
 
 
 $(init);

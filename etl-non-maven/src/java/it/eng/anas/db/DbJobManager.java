@@ -8,6 +8,7 @@ import java.util.concurrent.Callable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.eng.anas.Utils;
+import it.eng.anas.etl.AnasEtlJob;
 import it.eng.anas.model.DBJob;
 
 public class DbJobManager<T extends DBJob>  {
@@ -100,22 +101,7 @@ public class DbJobManager<T extends DBJob>  {
 	}
 	
 	private T _insertNew(T job)  throws Exception {
-		SimpleDbOp op = new SimpleDbOp(connection)
-			.query("select id from jobid_sequence")
-			.executeQuery();
-		op.next();
-		int id = op.getInt("id");
-		op.close()
-			.throwOnError();
-
-		new SimpleDbOp(connection)
-			.query("update jobid_sequence set id=?")
-			.setInt(1, id+1)
-			.execute()
-			.close()
-			.throwOnError();
-
-		job.id = id;
+		job.id = getNextId();
 		job.creation = job.last_change = Utils.date2String(new Date());
 		
 		String time = Utils.date2String(new Date());
@@ -127,12 +113,6 @@ public class DbJobManager<T extends DBJob>  {
 		
 		insert(job, "job");
 		
-		new SimpleDbOp(connection)
-			.query("update jobid_sequence set id=?")
-			.setInt(1, id+1)
-			.execute()
-			.close()
-			.throwOnError();
 		return job;
 	}
 	
@@ -304,4 +284,42 @@ public class DbJobManager<T extends DBJob>  {
 			return x;
 	}
 
+	private int getNextId() throws Exception {
+		new SimpleDbOp(connection)
+			.query("LOCK TABLES jobid_sequence WRITE")
+			.execute()
+			.close()
+			.throwOnError();
+		
+		SimpleDbOp sel = new SimpleDbOp(connection)
+			.query("select id from jobid_sequence")
+			.executeQuery();
+		
+		sel.next();
+		int id = sel.getInt("id");
+		sel.close();
+		
+		SimpleDbOp upd = new SimpleDbOp(connection)
+				.query("update jobid_sequence set id=?")
+				.setInt(1, id+1)
+				.executeUpdate()
+				.close();
+		
+		new SimpleDbOp(connection)
+			.query("UNLOCK TABLES ")
+			.execute()
+			.close()
+			.throwOnError();
+			
+		
+		return id;
+	}
+	
+	public static void main(String args[]) throws Exception {
+		DbJobManager<AnasEtlJob> manager = new DbJobManager<AnasEtlJob>("prova", AnasEtlJob.class);
+		for(int i=0; i<10; i++) {
+			int id = manager.getNextId();
+			System.out.println(id);
+		}
+	}
 }

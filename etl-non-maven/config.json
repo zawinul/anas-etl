@@ -2,6 +2,11 @@
 	"outputBasePath": "c:/temp/anas-etl-out",
 	"webServerPort": 5150,
 	
+	"idProgetti": "{CD703774-E2DB-494C-98CE-6B8618E6A761}",
+	"idLavori":   "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}",
+	"idArchivi":  "{A29BECCA-3445-427B-AE7E-30A8185C1702}",
+	
+	
 	"filenet_prototipo": {
 		"uri": "http://10.21.177.54:9080/wsi/FNCEWS40MTOM/",
 		"userid": "diosadmin",
@@ -22,6 +27,12 @@
 		"driverClass": "com.mysql.cj.jdbc.Driver",
 		"url": "jdbc:mysql://localhost:3306/anas-etl-prod",
 		"username": "anas-etl-prod",
+		"password": ""
+	},
+	"db_anas": {
+		"driverClass": "com.mysql.cj.jdbc.Driver",
+		"url": "jdbc:mysql://localhost:3306/anasetl",
+		"username": "extractor",
 		"password": ""
 	},
 	"shortPause": [

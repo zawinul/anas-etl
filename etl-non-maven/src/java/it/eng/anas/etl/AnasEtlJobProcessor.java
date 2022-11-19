@@ -41,6 +41,10 @@ public class AnasEtlJobProcessor  {
 		
 		else if (job.operation.equals("getListaDbs"))
 			getListaDbs(job);
+		else if (job.operation.equals("getArchiviFolder"))
+			getArchiviFolder(job);
+		else  if (job.operation.equals("startScanArchivi"))
+			startScanArchivi(job);
 		else {
 			throw new Exception("operation non riconosciuta: "+job.operation+", job="+Utils.getMapperOneLine().writeValueAsString(job));
 		}
@@ -69,6 +73,69 @@ public class AnasEtlJobProcessor  {
 			ret+=r0+"|"+r1+"|"+r2+"\n";
 		}
 		fileHelper.save("liste/"+job.key1+".txt", ret);
+	}
+	
+	private void startScanArchivi(AnasEtlJob job) throws Exception {
+		FilenetHelper fnet = caller.getFilenetHelper();
+		FilenetHelper.FolderInfo archivi;
+		archivi = fnet.traverseFolder("PDMASD", Utils.getConfig().idArchivi, true, false);
+		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
+
+		for(int i=0; i<archivi.children.size(); i++) {
+
+			FilenetHelper.SubFolderInfo sub = archivi.children.get(i);
+			int prio = 100000-i*1000;
+			String pathSegments[] = sub.path.split("/");
+			AnasEtlJob j = new AnasEtlJob();
+			j.operation = "getArchiviFolder";
+			j.folderId = sub.id;
+			j.path = sub.path;
+			j.key1 = "archivi";
+			j.key2 = pathSegments[pathSegments.length-1];
+			j.key3 = "";
+			j.priority = prio;
+			j.os = "PDMASD";
+			j.withdoc = job.withdoc;
+			j.withcontent = job.withcontent;
+			j.buildDir = job.buildDir;
+			if (job.buildDir)
+				fileHelper.getDir(sub.path);
+
+			jobManager.insertNew(j);
+		}
+	}
+	
+	
+	private void getArchiviFolder(AnasEtlJob job) throws Exception {
+		FilenetHelper fnet = caller.getFilenetHelper();
+		FilenetHelper.FolderInfo node;
+		node = fnet.traverseFolder("PDMASD", job.folderId, true, job.withdoc);
+		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
+		
+		for(int i=0; i<node.children.size(); i++) {
+			FilenetHelper.SubFolderInfo sub = node.children.get(i);
+			int prio = job.priority-1;
+			AnasEtlJob j = new AnasEtlJob();
+			j.operation = "getArchiviFolder";
+			j.folderId = sub.id;
+			j.path = sub.path;
+			j.key1 = "archivi";
+			j.key2 = job.key2;
+			j.key3 = sub.path;
+			j.priority = prio;
+			j.os = "PDMASD";
+			j.withdoc = job.withdoc;
+			j.withcontent = job.withcontent;
+			j.buildDir = job.buildDir;
+			j.parent_job = job.id;
+			
+			jobManager.insertNew(j);
+			
+
+			if (job.buildDir)
+				fileHelper.getDir(sub.path);
+
+		}
 	}
 	
 	/*
@@ -172,7 +239,7 @@ public class AnasEtlJobProcessor  {
 		boolean isDbs = path.split("/").length == 3;
 		if (isDbs)
 			fileHelper.saveJsonObject(dirPath+"/folder-metadata.json", node);
-		else
+		else if (job.buildDir)
 			fileHelper.getDir(dirPath);
 
 		int level = 0;

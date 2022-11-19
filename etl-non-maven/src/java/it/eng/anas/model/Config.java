@@ -15,6 +15,11 @@ public class Config extends Model {
 	public HashMap<String, Integer> schedule = new HashMap<String, Integer>();
 
 	
+	public String idProgetti;
+	public String idLavori;
+	public String idArchivi;
+
+	
 	public static class Priority {
 		public int getFolderMD = 1000;
 		public int getDocMD = 900;
