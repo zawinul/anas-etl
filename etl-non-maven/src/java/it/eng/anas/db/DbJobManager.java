@@ -178,7 +178,7 @@ public class DbJobManager<T extends DBJob>  {
 			return null;
 		}
 		
-		String sqlget = "select body from job where locktag=?";
+		String sqlget = "select body, priority from job where locktag=?";
 		SimpleDbOp op2 = new SimpleDbOp(connection)
 				.query(sqlget)
 				.setString(1, lcktag)
@@ -187,10 +187,15 @@ public class DbJobManager<T extends DBJob>  {
 		if (!op2.next())
 			throw new RuntimeException("non dovrebbe mai accadere: lcktag="+lcktag);
 		String jsonBody = op2.getString("body");
-
-		//DBJob ret = fromDB(op2);
-		T ret = mapper.readValue(jsonBody, tclass);
 		
+		// la priority potrebbe essere stata cambiata da sql
+		// aggiorniamo il body
+		int priority = op2.getInt("priority");
+		
+		op2.close();
+		
+		T ret = mapper.readValue(jsonBody, tclass);
+		ret.priority = priority;
 		return ret;
 	}
 
@@ -299,11 +304,11 @@ public class DbJobManager<T extends DBJob>  {
 		int id = sel.getInt("id");
 		sel.close();
 		
-		SimpleDbOp upd = new SimpleDbOp(connection)
-				.query("update jobid_sequence set id=?")
-				.setInt(1, id+1)
-				.executeUpdate()
-				.close();
+		new SimpleDbOp(connection)
+			.query("update jobid_sequence set id=?")
+			.setInt(1, id+1)
+			.executeUpdate()
+			.close();
 		
 		new SimpleDbOp(connection)
 			.query("UNLOCK TABLES ")

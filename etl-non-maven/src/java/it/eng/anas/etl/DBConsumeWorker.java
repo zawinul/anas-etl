@@ -14,8 +14,7 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 	public boolean closed = false;
 	public int waitOnBusy = 500;
 	public T currentJob;
-	private Class<T> tclass; 
-
+	
 	public void log(String msg) {
 		if(currentJob!=null)
 			super.log("job-"+currentJob.id+":"+msg);
@@ -24,7 +23,6 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 	public DBConsumeWorker(String tag, String queueName, int priority, Class<T> tclass) {
 
 		super(tag, priority);
-		this.tclass = tclass;
 		this.queueName = queueName;
 		
 		jobManager = new DbJobManager<T>(tag, tclass);

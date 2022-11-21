@@ -5,9 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.eng.anas.FilenetHelper;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
-import it.eng.anas.model.DBJob;
 
-public class AnasEtlWorker extends DBConsumeWorker  {
+public class AnasEtlWorker extends DBConsumeWorker<AnasEtlJob>  {
 
 	private AnasEtlJobProcessor processor;
 	private FilenetHelper filenet = null;
@@ -32,7 +31,7 @@ public class AnasEtlWorker extends DBConsumeWorker  {
 	}
 
 	@Override
-	public void onJob(DBJob job) throws Exception {
+	public void onJob(AnasEtlJob job) throws Exception {
 		log("AnasEtlJob onMessage "+job.id);
 		if (Utils.getConfig().simulazioneErrori)
 			if (Math.random()<.01) // fallisce l'1% delle operazioni

@@ -17,7 +17,6 @@ import it.eng.anas.db.ResultSetToJson;
 import it.eng.anas.db.SimpleDbOp;
 import it.eng.anas.etl.AnasEtlJob;
 import it.eng.anas.model.Config;
-import it.eng.anas.model.DBJob;
 import it.eng.anas.threads.ThreadManager;
 
 public class WebServer {
@@ -28,8 +27,8 @@ public class WebServer {
 	public Runnable onKill;
 	public void start() {
 		Config c = Utils.getConfig();
-		int port = Global.get("webport")!=null
-				? (Integer) Global.get("webport")
+		int port = Global.webport!=null
+				? Global.webport
 				: c.webServerPort;
 		spark.Spark.port(port);
 		spark.Spark.staticFileLocation("/web");
@@ -69,7 +68,7 @@ public class WebServer {
 		});
 
 		spark.Spark.post("/insertJob", (req, res) -> {
-			DbJobManager<AnasEtlJob> manager = new DbJobManager("insertJob", AnasEtlJob.class);
+			DbJobManager<AnasEtlJob> manager = new DbJobManager<AnasEtlJob>("insertJob", AnasEtlJob.class);
 			String json = req.body();
 			AnasEtlJob input = Utils.getMapper().readValue(json, AnasEtlJob.class);
 			AnasEtlJob job = manager.insertNew(input);
@@ -110,16 +109,7 @@ public class WebServer {
 			Event.emit("exit");
 			return "exit launched";
 		});
-
-
-
 	}
 
-	private String n(String x) {
-		if (x==null || x.trim().equals(""))
-			return null;
-		else
-			return x;
-	}
 	
 }

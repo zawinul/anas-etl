@@ -46,10 +46,10 @@ public class Main {
 	
 	public static void main(String args[]) {
 		System.out.println("starting main");
-		Global.set("args", args);
+		Global.args = args;
 		for(int i=0; i<args.length-1; i++)
 			if (args[i].equals("-webport"))
-				Global.set("webport", Integer.parseInt(args[i+1]));
+				Global.webport = Integer.parseInt(args[i+1]);
 		
 		new Main().execute();
 		

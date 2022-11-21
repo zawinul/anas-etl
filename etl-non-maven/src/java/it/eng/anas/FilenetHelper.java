@@ -1,5 +1,6 @@
 package it.eng.anas;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -236,12 +237,14 @@ public class FilenetHelper {
 		ret.name = fi.get_Name();
 		ret.path = fi.get_PathName();
 		if (withDocs) {
+			@SuppressWarnings("unchecked")
 			Iterator<Document>  docIterator = fi.get_ContainedDocuments().iterator();
 			List<Document> docs = getList(docIterator);
 			for(Document doc: docs) 
 				ret.docs.add(doc.get_Id().toString());
  		}
 		if (withChildren) {		
+			@SuppressWarnings("unchecked")
 			Iterator<Folder>  childterator = fi.get_SubFolders().iterator();
 			List<Folder> children = getList(childterator );
 			for(Folder fold: children) { 
@@ -270,6 +273,7 @@ public class FilenetHelper {
 		pf.addIncludeProperty(new FilterElement(0, null, null, PropertyNames.SUB_FOLDERS, null));
 		Folder f = Factory.Folder.fetchInstance(os, new Id(id), pf);
 		
+		@SuppressWarnings("unchecked")
 		List<Folder> sublist = getList(f.get_SubFolders().iterator());
 		List<String[]> ret = new ArrayList<String[]>();
 		for(Folder sub: sublist) {
@@ -383,7 +387,7 @@ public class FilenetHelper {
 		
 	}
 
-	public List<ContentTransfer>  getContentTransfer(String objectStore, String docId) throws Exception {
+	public List<ContentInfo>  getContentTransfer(String objectStore, String docId, boolean openStream) throws Exception {
 		ObjectStore os = getOS(objectStore);
 		if (os==null)
 			throw new Exception("Non esiste l'ObjectStore "+os);
@@ -397,7 +401,28 @@ public class FilenetHelper {
 		@SuppressWarnings("unchecked")
 		Iterator<ContentTransfer> cIterator = clist.iterator(); 
 		List<ContentTransfer> contents = getList(cIterator);
-		return contents;
+		List<ContentInfo> ret = new ArrayList<ContentInfo>();
+		for(ContentTransfer ct: contents) {
+			ContentInfo item = new  ContentInfo(ct);
+			if (openStream)
+				item.stream = ct.accessContentStream();
+			ret.add(item);
+		}
+		return ret;
+	}
+	
+	public static class ContentInfo {
+		public int size;
+		public String type;
+		public String filename;
+		public String uri;
+		public InputStream stream;
+		public ContentInfo(ContentTransfer ct) {
+			size = ct.get_ContentSize() != null? ct.get_ContentSize().intValue() : -1;
+			type = ct.get_ContentType();
+			filename = ct.get_RetrievalName();
+			uri = ct.getConnection().getURI();
+		}
 		
 	}
 
