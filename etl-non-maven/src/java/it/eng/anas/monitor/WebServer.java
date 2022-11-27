@@ -8,7 +8,6 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import it.eng.anas.Event;
-import it.eng.anas.Global;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DBConnectionFactory;
@@ -27,9 +26,7 @@ public class WebServer {
 	public Runnable onKill;
 	public void start() {
 		Config c = Utils.getConfig();
-		int port = Global.webport!=null
-				? Global.webport
-				: c.webServerPort;
+		int port = c.webServerPort;
 		spark.Spark.port(port);
 		spark.Spark.staticFileLocation("/web");
 		spark.Spark.get("/hello", (req, res) -> {
@@ -71,6 +68,7 @@ public class WebServer {
 			DbJobManager<AnasEtlJob> manager = new DbJobManager<AnasEtlJob>("insertJob", AnasEtlJob.class);
 			String json = req.body();
 			AnasEtlJob input = Utils.getMapper().readValue(json, AnasEtlJob.class);
+			input.queue = Utils.getConfig().queue;
 			AnasEtlJob job = manager.insertNew(input);
 			manager.close();
 			return Utils.getMapper().writeValueAsString(job);

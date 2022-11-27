@@ -5,18 +5,27 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.eng.anas.FilenetHelper;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
+import it.eng.anas.db.FilenetDBHelper;
 
 public class AnasEtlWorker extends DBConsumeWorker<AnasEtlJob>  {
 
 	private AnasEtlJobProcessor processor;
 	private FilenetHelper filenet = null;
+	private FilenetDBHelper filenetdb = null;
 	public ObjectMapper mapper = Utils.getMapper();
 	
-	public AnasEtlWorker(String tag, String queueName, int priority) {
-		super(tag, queueName, priority, AnasEtlJob.class);
+	public AnasEtlWorker(String tag, String queueName) {
+		super(tag, queueName, AnasEtlJob.class);
 		processor = new AnasEtlJobProcessor(this);
 	}
 	
+	public FilenetDBHelper getDB() throws Exception {
+		if (filenetdb==null) {
+			filenetdb = new FilenetDBHelper(tag);
+		}
+		return filenetdb;
+	}
+
 	public FilenetHelper getFilenetHelper() throws Exception {
 		if (filenet==null) {
 			filenet = new FilenetHelper();

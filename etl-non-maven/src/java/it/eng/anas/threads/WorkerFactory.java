@@ -1,7 +1,17 @@
 package it.eng.anas.threads;
 
-import java.util.List;
+import it.eng.anas.Utils;
+import it.eng.anas.etl.AnasEtlWorker;
 
-public abstract class WorkerFactory  {
-	public abstract Worker create(List<Worker> currentJobs);
+public class WorkerFactory  {
+	
+	
+	public Worker create(String type, Worker[] currentJobs, String tag) {
+		if ("anas-etl".equals(type)) {
+			String queue = Utils.getConfig().queue;
+			return new AnasEtlWorker(tag, queue);	
+		}
+		throw new RuntimeException("Worker type "+type+"' not found");
+	}
+
 }

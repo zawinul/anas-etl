@@ -75,7 +75,7 @@ public class DbJobManager<T extends DBJob>  {
 	}
 
 
-	public synchronized T extract(String queue)  throws Exception {
+	public /*synchronized */ T extract(String queue)  throws Exception {
 		return transactionManager.execute(new Callable<T>() {
 			public synchronized T call() throws Exception {
 				return _extract2(queue);

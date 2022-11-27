@@ -3,15 +3,16 @@ package it.eng.anas.model;
 import java.util.HashMap;
 
 public class Config extends Model {
+	public String queue ="";
 	public String outputBasePath = "";
 	public int webServerPort = 5150;
 	public FilenetConfig filenet = new FilenetConfig();
+	public FilenetDBConfig filenetdb = new FilenetDBConfig();
 	public DbConfig db = new DbConfig();
 	public int shortPause[] = {100, 200};
 	public int longPause[] = {10000, 30000};
 	public int nMaxRetry = 10;
 	public boolean simulazioneErrori = false;
-	public Priority priority = new Priority();
 	public HashMap<String, Integer> schedule = new HashMap<String, Integer>();
 
 	
@@ -20,20 +21,20 @@ public class Config extends Model {
 	public String idArchivi;
 
 	
-	public static class Priority {
-		public int getFolderMD = 1000;
-		public int getDocMD = 900;
-		public int getContent = 800;
-		
-		public int folderDelta = 10;
-	}
-	
 	public static class FilenetConfig  extends Model {
 		public String userid = "";
 		public String password = "";
 		public String uri = "";
 		public String objectstore = "";
 		public String stanza = "";
+	}
+
+	public static class FilenetDBConfig  extends Model {
+		public String user = "";
+		public String password = "";
+		public String url = "";
+		public String schema= "";
+		public String driverclass = "";
 	}
 
 	

@@ -20,9 +20,9 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 			super.log("job-"+currentJob.id+":"+msg);
 	}
 
-	public DBConsumeWorker(String tag, String queueName, int priority, Class<T> tclass) {
+	public DBConsumeWorker(String tag, String queueName, Class<T> tclass) {
 
-		super(tag, priority);
+		super(tag);
 		this.queueName = queueName;
 		
 		jobManager = new DbJobManager<T>(tag, tclass);
@@ -43,6 +43,7 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 				break;
 			}
 			singleStep();
+			Utils.shortPause();
 		}
 		log("end");
 	}
@@ -54,6 +55,7 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 	}
 
 	private void singleStep() throws Exception {
+		workerStatus = "getting job";
 		T job = jobManager.extract(queueName);
 		currentJob = job;
 		if (job==null) {
@@ -68,14 +70,13 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 		try {
 			workerStatus = "on job "+job.id;
 			onJob(job);
-			log("ok");
+			workerStatus = "job "+job.id+" ack";
 			jobManager.ack(job, "ok");
-			Utils.shortPause();
 		} 
 		catch (Exception e) {
 			log("error on receive BL: "+e.getMessage());
 			jobManager.nack(job, Utils.getStackTrace(e));
-			workerStatus = e.getMessage();
+			workerStatus = "job "+job.id+" "+e.getMessage();
 			throw e;
 		}
 		finally {

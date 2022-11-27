@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import it.eng.anas.FileHelper;
 import it.eng.anas.FilenetHelper;
+import it.eng.anas.Global;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
 
@@ -39,7 +40,7 @@ public class JobProcessorArchivi {
 			subjob.key2 = pathSegments[pathSegments.length-1];
 			subjob.key3 = "";
 			subjob.priority = prio;
-
+			subjob.os = "PDMASD";
 			jobManager.insertNew(subjob);
 		}
 	}
@@ -81,6 +82,9 @@ public class JobProcessorArchivi {
 		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
 		
 		for(int i=0; i<node.children.size(); i++) {
+			int depth = job.path.split("/").length;
+			if (Global.debug && depth>=3 && i>=3)
+				break;
 			FilenetHelper.SubFolderInfo sub = node.children.get(i);
 			int prio = job.priority-1;
 			AnasEtlJob j = AnasEtlJob.createSubJob(job);
@@ -98,7 +102,11 @@ public class JobProcessorArchivi {
 				fileHelper.getDir(sub.path);
 		}
 		if (job.withdoc) {
-			for(String docId: node.docs) {
+			for (int i=0;i<node.docs.size();i++) {
+				if (Global.debug && (i>=2))
+					break;
+				String docId = node.docs.get(i);
+				
 				AnasEtlJob j = new AnasEtlJob();
 				j.operation = "getArchiviDoc";
 				j.docId = docId;
@@ -117,19 +125,19 @@ public class JobProcessorArchivi {
 	
 	
 	public String folderPath(String path) {
-		return "archivi/"+path;
+		return path;
 	}
 
 	
 	public String[] docPath(String id, String path) {
 		return new String[] {
-			"archivi/"+path+"/"+id+".json",
-			"archivi/_documents_/"+id.substring(34,37)+"/"+id+".json"
+			path+"/"+id+".json",
+			"Archivi/_documents_/"+id.substring(34,37)+"/"+id+".json"
 		};
 	}
 
 	public String contentPath(String id, String path, String filename) {
-		return "archivi/_documents_/"+id.substring(34,37)+"/"+id+"."+filename;
+		return "Archivi/_documents_/"+id.substring(34,37)+"/"+id+"."+filename;
 	}
 
 

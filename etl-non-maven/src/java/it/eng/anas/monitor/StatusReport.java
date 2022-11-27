@@ -64,6 +64,7 @@ public class StatusReport {
 		Connection con = DBConnectionFactory.defaultFactory.getConnection("getReport");
 		ObjectNode main = mapper.createObjectNode();
 		main.put("openConnections",  DBConnectionFactory.nopen);
+		main.put("queue",  Utils.getConfig().queue);
 		if (ThreadManager.mainThreadManager!=null) {
 			main.put("forcedNumberOfThreads", ThreadManager.mainThreadManager.forcedNumberOfThreads);
 			main.set("workers", mapper.valueToTree(ThreadManager.mainThreadManager.threads));
@@ -98,7 +99,6 @@ public class StatusReport {
 	 
 	        jgen.writeStartObject();
 	        jgen.writeObjectField("job", value.currentJob);
-	        jgen.writeNumberField("priority", value.priority);
 	        jgen.writeStringField("tag", value.tag);
 	        jgen.writeStringField("queue", value.queueName);
 	        jgen.writeStringField("status", value.workerStatus);

@@ -7,8 +7,6 @@ import it.eng.anas.Log;
 
 public abstract class Worker extends Thread {
 	public String tag;
-	public int priority;
-	public int position;
 	public boolean exitRequest = false;
 	public List<Runnable> cleanup = new ArrayList<Runnable>();
 	public String workerStatus = "starting";
@@ -18,10 +16,9 @@ public abstract class Worker extends Thread {
 	}
 	
 
-	public Worker(String tag, int priority) {
+	public Worker(String tag) {
 		super(tag);
 		this.tag = tag;
-		this.priority = priority;
 	}
 	
 	

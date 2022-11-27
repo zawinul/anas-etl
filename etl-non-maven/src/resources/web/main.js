@@ -1,4 +1,6 @@
 var reportInterval;
+var queue = 'q1';
+
 function init() {
 	console.log('started v4');
 	showReport();
@@ -70,149 +72,12 @@ function setN() {
 	$.get('setn/' + n).then(() => console.log("set n=" + n + ", done!"));
 }
 
-
-
-function startScan() {
-	var os = prompt("Obect Store Name", "");
-	if (!os)
-		return;
-	var path = prompt("Path", "/");
-	if (!path)
-		return;
-	var maxrecursion = prompt("max recursion", "100");
-	if (!maxrecursion)
-		return;
-	maxrecursion = maxrecursion - 0;
-	var withdoc = prompt("inclusi i documenti?\n0=NO 1=SI", "0");
-	if (!withdoc)
-		return;
-	withdoc = withdoc == '1';
-	if (withdoc) {
-		var withcontent = prompt("inclusi i content?\n0=NO 1=SI", "0");
-		if (!withcontent)
-			return;
-		withcontent = withcontent == '1';
-	}
-	var msg = JSON.stringify({ os, path, maxrecursion, withdoc, withcontent }, null, 4);
-	var ok = confirm(msg);
-	if (!ok)
-		return;
-	var data = {
-		queue: 'anas-etl',
-		operation: 'getFolderMD',
-		priority: '1000',
-		key1: os,
-		key2: path,
-		body: JSON.stringify({ os, path, maxrecursion, withdoc, withcontent })
-	}
-	var params = [];
-	for (var field in data) {
-		var val = encodeURIComponent(data[field]);
-		params.push(field + '=' + val);
-	}
-	var url = 'insertJob?' + params.join('&');
-	var ok = confirm(url);
-	if (!ok)
-		return;
-	$.get(url).promise().then(
-		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
-		error => alert(error)
-	);
-
-}
-
-// function startScanProgetti() {
-// 	var os = "PDM";
-// 	var path = "/wbs/progetti";
-// 	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
-	
-// 	var maxrecursion = 1;
-// 	var withdoc = 0;
-// 	var withcontent = 0;
-// 	var msg = JSON.stringify({ os, folderId, maxrecursion, withdoc, withcontent }, null, 4);
-// 	var ok = confirm(msg);
-// 	if (!ok)
-// 		return;
-// 	var data = {
-// 		queue: 'anas-etl',
-// 		operation: 'getFolderMD',
-// 		priority: '1000',
-// 		key1: os,
-// 		key2: path,
-// 		body: JSON.stringify({ os, path,maxrecursion, withdoc, withcontent })
-// 	}
-// 	var params = [];
-// 	for (var field in data) {
-// 		var val = encodeURIComponent(data[field]);
-// 		params.push(field + '=' + val);
-// 	}
-// 	var url = 'insertJob?' + params.join('&');
-// 	$.get(url).promise().then(
-// 		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
-// 		error => alert(error)
-// 	);
-// }
-
-function startScanLavori() {
-	var os = "PDM";
-
-	var path = "/dbs/lavori";
-	var folderId = "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}";
-	launch(path, folderId,1000000); 
-
-	var path = "/dbs/progetti";
-	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
-	launch(path, folderId, 1000000); 
-
-
-//	var path = "/dbs/lavori/BAUP00051.1";
-//	var folderId = "{F0544477-0000-C613-B183-A848ED9C7F8E}";
-
-	function launch(path, folderId, priority) {
-		let job = {
-			queue: 'anas-etl',
-			operation: 'getFolderMD',
-			priority,
-			key1: os,
-			key2: path,
-			key3: "0",
-			os, 
-			folderId,
-			maxrecursion: 100, 
-			withdoc: 1, 
-			withcontent: 0 
-		};
-
-		var msg = JSON.stringify(job, null, 4);
-		if (!confirm(msg))
-			return;
-
-		$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
-			ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
-			error => alert(error)
-		);
-	}
-}
-
-
-
-function wait(ms) {
-	return new Promise(function(resolve,reject){
-		setTimeout(resolve,ms);
-	});
-}
-
-const idProgetti = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
-const idLavori = "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}";
-const idArchivi = "{A29BECCA-3445-427B-AE7E-30A8185C1702}";
-
 async function getListeDbs() {
 	var os = "PDM";
 
 	var path = "/dbs/lavori";
 	var folderId = "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}";
 	launch(folderId, "lavori"); 
-	//await wait(1000);
 	var path = "/dbs/progetti";
 	var folderId = "{CD703774-E2DB-494C-98CE-6B8618E6A761}";
 	launch(folderId, "progetti"); 
@@ -220,7 +85,7 @@ async function getListeDbs() {
 
 	function launch(folderId, tag) {
 		let job = {
-			queue: 'anas-etl',
+			queue,
 			operation: 'getListaDbs',
 			priority: 100,
 			key1: tag,
@@ -239,77 +104,44 @@ async function getListeDbs() {
 	}
 }
 
-async function getProgettoSingolo() {
-	var os = "PDM";
+// async function getProgettoSingolo() {
+// 	var os = "PDM";
 
-	var path = "/dbs/progetti/LO.710.E.D.19.01";
-	var folderId = "{B35E558C-8317-4260-985B-C2B93B7B8A5A}";
-	let job = {
-		queue: 'anas-etl',
-		operation: 'getFolderMD',
-		priority: 10000,
-		key1: os,
-		key2: path,
-		key3: "0",
-		os, 
-		folderId,
-		maxrecursion: 100, 
-		withdoc: 1, 
-		withcontent: 0 
+// 	var path = "/dbs/progetti/LO.710.E.D.19.01";
+// 	var folderId = "{B35E558C-8317-4260-985B-C2B93B7B8A5A}";
+// 	let job = {
+// 		queue: 'anas-etl',
+// 		operation: 'getFolderMD',
+// 		priority: 10000,
+// 		key1: os,
+// 		key2: path,
+// 		key3: "0",
+// 		os, 
+// 		folderId,
+// 		maxrecursion: 100, 
+// 		withdoc: 1, 
+// 		withcontent: 0 
 
-	};
-	$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
-		ok => console.log(JSON.stringify(JSON.parse(ok), null, 2)),
-		error => alert(error)
-	);
+// 	};
+// 	$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+// 		ok => console.log(JSON.stringify(JSON.parse(ok), null, 2)),
+// 		error => alert(error)
+// 	);
 	
-}
-
-
-// function startScanArchivi() {
-// 	var os = "PDMASD";
-// 	launch("/archivi", idArchivi, 1000000); 
-
-// 	function launch(path, folderId, priority) {
-// 		let job = {
-// 			queue: 'anas-etl',
-// 			operation: 'getFolderMD',
-// 			priority,
-// 			key1: os,
-// 			key2: path,
-// 			key3: "0",
-// 			os, 
-// 			folderId,
-// 			maxrecursion: 100, 
-// 			withdoc: 0, 
-// 			withcontent: 0,
-// 			buildDir: true
-// 		};
-
-// 		var msg = JSON.stringify(job, null, 4);
-// 		if (!confirm(msg))
-// 			return;
-
-// 		$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
-// 			ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
-// 			error => alert(error)
-// 		);
-// 	}
 // }
 
 
 function startScanArchivi() {
+	var withdoc = confirm("with doc");
+	var withcontent = withdoc && confirm("with content");
 
 	let job = {
-		queue: 'anas-etl',
+		queue,
 		operation: 'startScanArchivi',
 		priority:1000000,
-		key1: "archivi",
-		key2: "",
-		key3: "",
-		withdoc: true, 
-		withcontent: false,
-		buildDir: true
+		withdoc, 
+		withcontent,
+		buildDir: false
 	};
 
 	var msg = JSON.stringify(job, null, 4);
@@ -322,6 +154,32 @@ function startScanArchivi() {
 	);
 }
 
+function startScanProgetti() { startScanDBS('progetti'); }
+function startScanLavori() { startScanDBS('lavori'); }
+
+function startScanDBS(what) {
+	var withdoc = confirm("with doc");
+	var withcontent = withdoc && confirm("with content");
+
+	let job = {
+		queue,
+		operation: 'startScanDBS',
+		priority:2000000,
+		key1: what,
+		withdoc, 
+		withcontent,
+		buildDir: true
+	};
+
+	var msg = JSON.stringify(job, null, 4);
+	if (!confirm(msg))
+		return;
+
+	$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
+		error => alert(error)
+	);
+}
 
 async function sql(query) {
 	$.post({url:'sql', data:query}).promise().then(

@@ -129,7 +129,7 @@ public class Utils {
 	
 	private static Config refreshConfig()  {
 		try {
-			FileReader r = new FileReader("./config.json");
+			FileReader r = new FileReader(Global.configFile);
 			String json = IOUtils.toString(r);
 			if (!json.equals(jsonCfg)) {
 				jsonCfg = json;
