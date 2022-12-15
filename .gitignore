@@ -1,6 +1,7 @@
-password.*
+**/config.json
 runnable.jar
 JavaCEWSClient/*
+execute/*
 
 .metadata
 *.iml
@@ -11,7 +12,6 @@ classpath.txt
 version.properties
 .project
 .classpath
-lib/*
 build/*
 generated-files/*
 generated-sources/*
@@ -20,7 +20,6 @@ generated-code/*
 *.swo
 target
 .idea
-.lib
 atlassian-ide-plugin.xml
 .DS_Store
 packages/
@@ -36,7 +35,7 @@ RemoteSystemsTempFiles
 *.xml~
 *.t~
 
-/bin
+**/bin
 /target
 /generated-files
 /nbactions.xml
