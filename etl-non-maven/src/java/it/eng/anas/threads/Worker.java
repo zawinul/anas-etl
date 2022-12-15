@@ -10,7 +10,8 @@ public abstract class Worker extends Thread {
 	public boolean exitRequest = false;
 	public List<Runnable> cleanup = new ArrayList<Runnable>();
 	public String workerStatus = "starting";
-
+	public int index;
+	
 	public void log(String x) { 
 		Log.etl.log(tag+":"+x);
 	}

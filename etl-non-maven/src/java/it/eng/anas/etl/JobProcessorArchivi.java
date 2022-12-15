@@ -1,7 +1,9 @@
 package it.eng.anas.etl;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import it.eng.anas.FileHelper;
@@ -9,44 +11,117 @@ import it.eng.anas.FilenetHelper;
 import it.eng.anas.Global;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
+import it.eng.anas.db.FilenetDBHelper;
 
 public class JobProcessorArchivi {
-	private AnasEtlWorker caller;
-	private FileHelper fileHelper = new FileHelper();
+	protected AnasEtlWorker caller;
+	protected FileHelper fileHelper = new FileHelper();
+	
 	public JobProcessorArchivi(AnasEtlWorker caller) {
 		this.caller = caller;
 	}
 
+	
 	public void startScanArchivi(AnasEtlJob job) throws Exception {
-		FilenetHelper fnet = caller.getFilenetHelper();
-		FilenetHelper.FolderInfo archivi;
-		archivi = fnet.traverseFolder("PDMASD", Utils.getConfig().idArchivi, true, false);
+		FilenetDBHelper db = caller.getDB();
+		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
+		List<String> folders = new ArrayList<>();
+		String startId = Utils.getConfig().idArchivi;
+		db.getSubFolders("PDMASD", startId, "archivi", new FilenetDBHelper.FolderListener() {
+			
+			@Override
+			public void onFolder(String folderId, String path) throws Exception {
+	//			if (job.buildDir)
+	//				fileHelper.getDir(path);
+	
+				if (!folderId.startsWith("{"))
+					folderId = FilenetDBHelper.dbid2guid(folderId);
+	
+				int i = folders.size();
+				int prio = 1000000-i*100;
+				String pathSegments[] = path.split("/");
+				AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
+				subjob.operation = "getArchiviFolder";
+				subjob.queue = "qdata";
+				subjob.folderId = folderId;
+				subjob.path = path;
+				subjob.key1 = "archivi";
+				subjob.key2 = pathSegments[pathSegments.length-1];
+				subjob.key3 = path;
+				subjob.priority = prio+4;
+				subjob.os = "PDMASD";
+				jobManager.insertNew(subjob);
+				folders.add(folderId);	
+			}
+		});
+
+	}
+	
+	public void getArchiviFolder(AnasEtlJob job) throws Exception {
+		FilenetDBHelper db = caller.getDB();
+		String id = job.folderId;
+		if (id.startsWith("{"))
+			id = FilenetDBHelper.guid2dbid(id);
+
 		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
 
-		for(int i=0; i<archivi.children.size(); i++) {
+		final IntContainer folderCount = new IntContainer();
+		db.getSubFolders("PDMASD", job.folderId, job.path, new FilenetDBHelper.FolderListener() {
+			@Override
+			public void onFolder(String subid, String subpath) throws Exception {
+				String pathComponents[] = subpath.split("/");
+				if (pathComponents.length>=3 && Global.debug && folderCount.c>=3)
+					return;
+				String segment = pathComponents.length>=4 ? pathComponents[2]+"/"+pathComponents[3] : "-";
+				AnasEtlJob j = AnasEtlJob.createSubJob(job);
+				j.operation = "getArchiviFolder";
+				j.queue = "qdata";
+				j.folderId = subid;
+				j.path = subpath;
+				j.key1 = "archivi";
+				j.key2 = segment;
+				j.key3 = subpath;
+				j.priority = job.priority;
+				
+				jobManager.insertNew(j);
+				folderCount.c++;
+				if (job.buildDir)
+					fileHelper.getDir(folderPath(subpath));
+			}
+		});
 
-			FilenetHelper.SubFolderInfo sub = archivi.children.get(i);
+		if (job.withdoc) {
+			final IntContainer docCount = new IntContainer();
+			db.getContainedDocumentsId("PDMASD", job.folderId, new FilenetDBHelper.DocIdListener() {
+				
+				@Override
+				public void onDoc(String docId) throws Exception {
+					if (Global.debug && docCount.c>5)
+						return;
+					else
+						docCount.c++;
+					if (!docId.startsWith("{"))
+						docId = FilenetDBHelper.guid2dbid(docId);
+					AnasEtlJob j = AnasEtlJob.createSubJob(job);
+					String pathComponents[] = job.path.split("/");
+					String segment = pathComponents.length>=4 ? pathComponents[2]+"/"+pathComponents[3] : "-";
 
-			if (job.buildDir) 
-				fileHelper.getDir(folderPath(sub.path));
-			
-			int prio = 100000-i*1000;
-			String pathSegments[] = sub.path.split("/");
-			AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
-			subjob.operation = "getArchiviFolder";
-			subjob.folderId = sub.id;
-			subjob.path = sub.path;
-			subjob.key1 = "archivi";
-			subjob.key2 = pathSegments[pathSegments.length-1];
-			subjob.key3 = "";
-			subjob.priority = prio;
-			subjob.os = "PDMASD";
-			jobManager.insertNew(subjob);
+					j.operation = "getArchiviDoc";
+					j.queue = "qdata";
+					j.docId = docId;
+					j.path = job.path;
+					j.key1 = "archivi";
+					j.key2 = segment;
+					j.key3 = docId;
+					j.priority = job.priority-1;
+					jobManager.insertNew(j);
+				}
+			});
 		}
 	}
 
-
-	public void getArchiviDoc(AnasEtlJob job) throws Exception {
+	
+	public void getArchiviDoc_API(AnasEtlJob job) throws Exception {
 		FilenetHelper fnet = caller.getFilenetHelper();
 		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
 		ObjectNode node = fnet.getDocumentMetadata(job.os, job.docId);
@@ -58,10 +133,32 @@ public class JobProcessorArchivi {
 		if (job.withcontent) {
 			AnasEtlJob newjob = AnasEtlJob.createSubJob(job);
 			newjob.operation = "getArchiviContent";
-			newjob.priority = job.priority-10;
+			newjob.priority = job.priority-1;
 			jobManager.insertNew(newjob);
 		}
 	}
+	
+	public void getArchiviDoc(AnasEtlJob job) throws Exception {
+		FilenetDBHelper db = caller.getDB();
+		ArrayNode node = db.getDocProperties(job.os, job.docId);
+		String outpath[] = docPath(job.docId, job.path);
+		for(String p: outpath)	
+			if (node.size()>0)
+				fileHelper.saveJsonObject(p, node.get(0));
+		
+		
+		if (job.withcontent) {
+			DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
+			
+			AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
+			subjob.queue = "qcontent";
+			subjob.operation = "getArchiviContent";
+			subjob.priority = job.priority-1;
+
+			jobManager.insertNew(subjob);
+		}
+	}
+
 
 	public void getArchiviContent(AnasEtlJob job) throws Exception {
 		FilenetHelper fnet = caller.getFilenetHelper();
@@ -75,53 +172,6 @@ public class JobProcessorArchivi {
 		}
 	}
 	
-	public void getArchiviFolder(AnasEtlJob job) throws Exception {
-		FilenetHelper fnet = caller.getFilenetHelper();
-		FilenetHelper.FolderInfo node;
-		node = fnet.traverseFolder("PDMASD", job.folderId, true, job.withdoc);
-		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
-		
-		for(int i=0; i<node.children.size(); i++) {
-			int depth = job.path.split("/").length;
-			if (Global.debug && depth>=3 && i>=3)
-				break;
-			FilenetHelper.SubFolderInfo sub = node.children.get(i);
-			int prio = job.priority-1;
-			AnasEtlJob j = AnasEtlJob.createSubJob(job);
-			j.operation = "getArchiviFolder";
-			j.folderId = sub.id;
-			j.path = sub.path;
-			j.key1 = "archivi";
-			j.key2 = job.key2;
-			j.key3 = sub.path;
-			j.priority = prio;
-			
-			jobManager.insertNew(j);
-
-			if (job.buildDir)
-				fileHelper.getDir(sub.path);
-		}
-		if (job.withdoc) {
-			for (int i=0;i<node.docs.size();i++) {
-				if (Global.debug && (i>=2))
-					break;
-				String docId = node.docs.get(i);
-				
-				AnasEtlJob j = new AnasEtlJob();
-				j.operation = "getArchiviDoc";
-				j.docId = docId;
-				j.path = job.path;
-				j.key1 = "archivi";
-				j.key2 = job.key2;
-				j.key3 = docId;
-				j.priority = job.priority-20;
-				j.os = "PDMASD";
-				j.withcontent = job.withcontent;
-				j.parent_job = job.id;				
-				jobManager.insertNew(j);
-			}
-		}
-	}
 	
 	
 	public String folderPath(String path) {
@@ -131,16 +181,20 @@ public class JobProcessorArchivi {
 	
 	public String[] docPath(String id, String path) {
 		return new String[] {
-			path+"/"+id+".json",
-			"Archivi/_documents_/"+id.substring(34,37)+"/"+id+".json"
+			path+"/"+id+".json"//,
+			//"Archivi/_documents_/"+id.substring(34,37)+"/"+id+".json"
 		};
 	}
 
 	public String contentPath(String id, String path, String filename) {
-		return "Archivi/_documents_/"+id.substring(34,37)+"/"+id+"."+filename;
+		//return "Archivi/_documents_/"+id.substring(34,37)+"/"+id+"."+filename;
+		return path+"/"+id+"."+filename;
+
 	}
 
-
+	private static class IntContainer {
+		public int c = 0;
+	}
 
 
 }

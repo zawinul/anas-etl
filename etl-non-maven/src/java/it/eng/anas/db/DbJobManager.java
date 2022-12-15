@@ -75,16 +75,19 @@ public class DbJobManager<T extends DBJob>  {
 	}
 
 
-	public /*synchronized */ T extract(String queue)  throws Exception {
+	public /*synchronized */ T extract()  throws Exception {
 		return transactionManager.execute(new Callable<T>() {
 			public synchronized T call() throws Exception {
-				return _extract2(queue);
+				return _extract2();
 			}
 		});
 	}
 	
 
 	public synchronized T ack(T job, String out)  throws Exception {
+//		if (Global.debug)
+//			return job;
+		
 		return transactionManager.execute(new Callable<T>() {
 			public synchronized T call() throws Exception {
 				return _ack(job, out);
@@ -93,6 +96,9 @@ public class DbJobManager<T extends DBJob>  {
 	}
 
 	public synchronized T nack(T job, String out)  throws Exception {
+//		if (Global.debug)
+//			return job;
+
 		return transactionManager.execute(new Callable<T>() {
 			public synchronized T call() throws Exception {
 				return _nack(job, out);
@@ -149,17 +155,21 @@ public class DbJobManager<T extends DBJob>  {
 		" UPDATE job SET locktag=?, last_change=? WHERE jobid= ( "+
 		"   (SELECT jobid                                        "+
 		"     FROM (select * from job as job2 ) as j2            "+
-		"     WHERE locktag is null                              "+
+		"     WHERE locktag is null AND extractCondition         "+
 		"     ORDER BY priority desc,nretry,key1,key2,key3,jobid "+
 		"     LIMIT 1                                            "+
 		"   )                                                    "+
 		" )                                                      ";
 	
-	private T _extract2(String queue)  throws Exception {
+	private T _extract2()  throws Exception {
+		String extractCondition = Utils.getConfig().extractCondition;
+		if (extractCondition==null)
+			extractCondition="1=1";
+		String query = getLockSql.replace("extractCondition", extractCondition);
 		String lcktag = Utils.rndString(6);
 		String now = Utils.date2String(new Date());
 		SimpleDbOp op1 = new SimpleDbOp(connection)
-				.query(getLockSql)
+				.query(query)
 				.setString(1, lcktag)
 				.setString(2, now)
 				.executeUpdate()

@@ -462,7 +462,7 @@ public class SimpleDbOp  {
 		lambda.accept(i);
 		return this;
 	}
-	
+
 	public int getInt(String key) {
 		if (error)
 			return 0;

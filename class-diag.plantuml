@@ -10,17 +10,26 @@ package  #EEEEFF {
 	}
 	class AnasEtlWorker {
 	}
+	class DBJob{
+	}
+	class AnasETLJob{
+	}
+	DBJob <|-- AnasETLJob
+
+
 	Worker <|-- DbConsumeWorker
 	DbConsumeWorker <|-- AnasEtlWorker
 	note bottom of DbConsumeWorker : thread che scoda i\njob e li esegue
 	note right of Worker : è un java.lang.Thread
-	note right of AnasEtlWorker : scoda i job ANAS\ne li esegue
+	note top of AnasEtlWorker : scoda i job ANAS\ne li esegue
 
 	class WorkerFactory {
 		public Worker create(...);
 	}
 	note top of WorkerFactory : chiamato a runtime per \ngenerare nuovi thread
 
+	AnasEtlWorker->AnasETLJob : consuma
+	AnasEtlWorker->AnasETLJob : genera
 }
 
 

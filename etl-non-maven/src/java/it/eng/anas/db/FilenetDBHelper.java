@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import it.eng.anas.Utils;
@@ -40,7 +39,11 @@ public class FilenetDBHelper {
 	public void setOs(String os) throws Exception {
 		if (!os.equals(this.os)) {
 			this.os = os;
-			String schema = os.toLowerCase().equals("pdm") ? "PDM_OS" : "ASD_OS";
+			String schema = os;
+			if (os.toLowerCase().equals("pdm"))
+				schema = "PDM_OS";
+			if (os.toLowerCase().equals("pdmasd"))
+				schema = "ASD_OS";
 			new SimpleDbOp(getConnection())
 			.query("alter session set current_schema="+schema)
 			.execute()
@@ -96,21 +99,29 @@ public class FilenetDBHelper {
 	}
 	
 	public void getContainedDocumentsId(String os, String folderId, DocIdListener listener) throws Exception {
+		if (folderId.startsWith("{"))
+			folderId = guid2dbid(folderId);
+		//String getDocQuery = "select d.object_id from docversion d where d.object_id in "+ 
+		//		" (select head_id from relationship  where tail_id=? and object_class_id=?)";
+		String getDocQuery = "select d.object_id from docversion d where d.retrieval_names is not null and d.object_id in "+ 
+				" (select head_id from relationship  where tail_id=? and object_class_id=?) order by d.content_size desc";
 		setOs(os);
 		SimpleDbOp op = new SimpleDbOp(getConnection())
-			.query("select head_id from relationship  where tail_id=? and object_class_id=?")
+			.query(getDocQuery)
 			.setString(1,  folderId)
 			.setString(2, getFolderRelationshipId(os))
 			.executeQuery()
 			.throwOnError();
 		
 		while(op.next())
-			listener.onDoc(dbid2guid(op.getString("head_id")));
+			listener.onDoc(dbid2guid(op.getString("object_id")));
 		
 		op.close().throwOnError();
 	}
 	
 	public static String guid2dbid(String guid) {
+		if (!guid.startsWith("{"))
+			return guid;
 		String s1 = guid.substring(1, 3);
 		String s2 = guid.substring(3, 5);
 		String s3 = guid.substring(5, 7);
@@ -126,6 +137,8 @@ public class FilenetDBHelper {
 	}
 
 	public static String dbid2guid(String dbid) {
+		if (dbid.startsWith("{"))
+			return dbid;
 		String s1 = dbid.substring(0, 2);
 		String s2 = dbid.substring(2, 4);
 		String s3 = dbid.substring(4, 6);
@@ -175,7 +188,7 @@ public class FilenetDBHelper {
 	
 
 	private HashMap<String, String> _docfieldmap = null;
-	private  HashMap<String, String> getDocFieldMap() throws Exception {
+	public  HashMap<String, String> getDocFieldMap() throws Exception {
 		if (_docfieldmap==null) {
 			_docfieldmap = new HashMap<String, String>();
 			SimpleDbOp op = new SimpleDbOp(getConnection())

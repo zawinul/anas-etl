@@ -2,13 +2,13 @@ package it.eng.anas.etl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.eng.anas.Event;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
 import it.eng.anas.model.DBJob;
 import it.eng.anas.threads.Worker;
 
 public class DBConsumeWorker<T extends DBJob> extends Worker {
-	public String queueName;
 	public ObjectMapper mapper;
 	public DbJobManager<T> jobManager;
 	public boolean closed = false;
@@ -20,10 +20,9 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 			super.log("job-"+currentJob.id+":"+msg);
 	}
 
-	public DBConsumeWorker(String tag, String queueName, Class<T> tclass) {
+	public DBConsumeWorker(String tag, Class<T> tclass) {
 
 		super(tag);
-		this.queueName = queueName;
 		
 		jobManager = new DbJobManager<T>(tag, tclass);
 		final DBConsumeWorker t = this;
@@ -36,10 +35,13 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 	
 	public void execute() throws Exception {
 		log("start");
+		workerStatus = "started";
+		Event.emit("worker-changed", this);
 		mapper = Utils.getMapper();
 		while(true) {
 			if (exitRequest) {
 				workerStatus = "exit request";
+				Event.emit("worker-changed", this);
 				break;
 			}
 			singleStep();
@@ -51,15 +53,17 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 	public void onJob(T job) throws Exception {
 		log("onJob "+job);
 		workerStatus = "on job "+job.id+" "+job.operation;
+		Event.emit("worker-changed", this);
 		Utils.shortPause();
 	}
 
 	private void singleStep() throws Exception {
 		workerStatus = "getting job";
-		T job = jobManager.extract(queueName);
+		T job = jobManager.extract();
 		currentJob = job;
 		if (job==null) {
 			workerStatus = "coda vuota";
+			Event.emit("worker-changed", this);
 			Utils.shortPause();
 			//log("Coda vuota: "+queueName);
 			return;
@@ -69,14 +73,17 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 		
 		try {
 			workerStatus = "on job "+job.id;
+			Event.emit("worker-changed", this);
 			onJob(job);
 			workerStatus = "job "+job.id+" ack";
+			Event.emit("worker-changed", this);
 			jobManager.ack(job, "ok");
 		} 
 		catch (Exception e) {
 			log("error on receive BL: "+e.getMessage());
 			jobManager.nack(job, Utils.getStackTrace(e));
 			workerStatus = "job "+job.id+" "+e.getMessage();
+			Event.emit("worker-changed", this);
 			throw e;
 		}
 		finally {
@@ -87,6 +94,7 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 	public void close() {
 		if (jobManager!=null)
 			jobManager.close();
+		Event.emit("worker-changed", this);
 		jobManager = null;
 	}
 }

@@ -18,6 +18,7 @@
 			<button onClick="startScanProgetti()">start scan progetti</button>
 			<button onClick="startScanLavori()">start scan lavori</button>
 			<button onClick="startScanArchivi()">start scan archivi</button>
+			<button onClick="startScanArchivi2()">start scan archivi 2</button>
 			<button onClick="exit()">exit</button>
 
 			<button onClick="showReport()" style="float:right">refresh</button>
@@ -27,6 +28,7 @@
 				<thead>
 					<tr>
 						<th>tag</th>
+						<th>queue</th>
 						<th>priority</th>
 						<th># retry</th>
 						<th>operation</th>
@@ -39,9 +41,14 @@
 				<tbody></tbody>
 			</table>
 		</div>
-		<div class="db count box"></div>	
-		<div class="db operation box"></div>	
-		<div class="db status box"></div>	
+		<!-- <div class="db count box"></div>	 -->
+		<div class="db operation box">
+			<div class="cell todo-operation"></div>
+			<div class="cell done-operation"></div>
+			<div class="cell error-operation"></div>
+			<div class="cell timer"></div>
+		</div>	
+		<!-- <div class="db status box"></div>	 -->
 		<div class="connections box"></div>	
 	</div>
 </body>

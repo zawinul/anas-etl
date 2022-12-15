@@ -30,6 +30,7 @@ public class ThreadManager {
 		log("addOne");
 		String tag = (""+(1000+i)).substring(1);
 		final Worker wrk = factory.create("anas-etl", threads, "WRK-"+tag);
+		wrk.index = i;
 		wrk.cleanup.add( new Runnable() {
 			public void run() {
 				wrk.workerStatus = "cleanup";
@@ -64,26 +65,26 @@ public class ThreadManager {
 
 	public void killAll(boolean andWait) {
 		Worker temp[] = new Worker[threads.length];
+		forcedNumberOfThreads = 0;
+		int n = 0;
 		for(var i=0; i<threads.length;i++) {
-			temp[i] = threads[i];
-			temp[i].exitRequest = true;
-			threads[i] = null;
+			if (threads[i]!=null) {
+				temp[n] = threads[i];
+				temp[n].exitRequest = true;
+				threads[i] = null;
+				n++;
+			}
 		}
 		
-		forcedNumberOfThreads = 0;
 		
 		if (andWait) {
-			for(var i=0; i<temp.length;i++) {
-				Worker t = temp[i];
-				if (t!=null) {
-					try {
-						t.join();
-						log("join thread "+t.tag);
-					} catch (Exception e) {
-						log("ERROR on join thread "+t.tag);
-						//e.printStackTrace();
-					}
-					
+			for(var i=0; i<n;i++) {
+				try {
+					log("join thread "+temp[i].tag);
+					temp[i].join();
+				} catch (Exception e) {
+					log("ERROR on join thread "+temp[i].tag);
+					//e.printStackTrace();
 				}
 			}
 		}

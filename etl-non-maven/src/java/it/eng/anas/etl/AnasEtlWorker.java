@@ -14,8 +14,8 @@ public class AnasEtlWorker extends DBConsumeWorker<AnasEtlJob>  {
 	private FilenetDBHelper filenetdb = null;
 	public ObjectMapper mapper = Utils.getMapper();
 	
-	public AnasEtlWorker(String tag, String queueName) {
-		super(tag, queueName, AnasEtlJob.class);
+	public AnasEtlWorker(String tag) {
+		super(tag, AnasEtlJob.class);
 		processor = new AnasEtlJobProcessor(this);
 	}
 	

@@ -1,10 +1,21 @@
-var reportInterval;
-var queue = 'q1';
+var reportTimeout;
+var reportIntervalTime = 20000;
+
+var webSocket = new WebSocket("ws://" + location.hostname + ":" + location.port + "/monitor");
+webSocket.onmessage = function (msg) { 
+	var obj = JSON.parse(msg.data);
+	if (obj['update-worker'])
+		updateWorker(obj['update-worker']);
+	else
+		console.log(obj); 
+	
+};
+webSocket.onclose = function () { alert("WebSocket connection closed") };
 
 function init() {
 	console.log('started v4');
 	showReport();
-	reportInterval = setInterval(showReport, 5000);
+	reportTimeout = setInterval(showReport, reportIntervalTime);
 	var insjob = $('.insert-job');
 	$('.ok', insjob).click(() => insjob.data('onOk')());
 	$('.cancel', insjob).click(() => insjob.data('onCancel')());
@@ -12,50 +23,84 @@ function init() {
 }
 var data;
 
-async function showReport() {
-	var txt = await $.get('../report').promise();
-	data = JSON.parse(txt);
-	var tbody = $('.workers tbody');
-	tbody.empty();
-	for (var i = 0; i < data.workers.length; i++) {
-		let d = data.workers[i];
-		let job = d.job || { operation: '-', key1: '-', key2: '-', key3: '-', lock: '-', priority: '-', nretry: '-' };
-		let div = $('<div/>').addClass('job-desc').appendTo('.workers');
-		var row = $(`<tr>
-			<td class="tag">${d.tag}</td>
+function makeWorkerRow(worker) {
+	let job = worker && worker.job ? worker.job : { queue:'-', operation: '-', key1: '-', key2: '-', key3: '-', lock: '-', priority: '-', nretry: '-' };
+	let tr = $(`<tr>
+			<td class="tag">${worker.tag}</td>
+			<td class="queue">${job.queue}</td>
 			<td class="priority">${job.priority}</td>
 			<td class="nretry">${job.nretry}</td>
 			<td class="operation">${job.operation}</td>
 			<td class="par1">${job.key1}</td>
 			<td class="par2">${job.key2}</td>
 			<td class="par3">${job.key3}</td>
-			<td class="lock">${d.status}</td>
-		</tr>`).appendTo(tbody);
-		row.attr('title', JSON.stringify(d, null, 2));
+			<td class="lock">${worker!=null ? worker.status : ''}</td>
+		</tr>`);
+	tr.attr('tag', worker.tag);
+	return tr;
+}
+
+function updateWorker(worker) {
+	let old = $(`tr[tag="${worker.tag}"]`);
+	if (old.length==0)
+		return;
+	let tr = makeWorkerRow(worker);
+	old[0].innerHTML = tr[0].innerHTML;
+}
+
+async function showReport() {
+	clearTimeout(reportTimeout);
+	var txt = await $.get('../report').promise();
+	data = JSON.parse(txt);
+	var tbody = $('.workers tbody');
+	tbody.empty();
+	for (var i = 0; i < data.workers.length; i++) {
+		if (data.workers[i]==null)
+			continue;
+		let div = $('<div/>').addClass('job-desc').appendTo('.workers');
+		var row = makeWorkerRow(data.workers[i]);
+		row.appendTo(tbody);
+		row.attr('title', JSON.stringify(data.workers[i], null, 2));
 	}
 
-	$('.db').empty();
-	var nitems = "#job=" + data.job[0].count
-		+ ", #done=" + data.done[0].count
-		+ ", #error=" + data.error[0].count;
+	// $('.db.count').empty();
+	// var nitems = "#job=" + data.job[0].count
+	// 	+ ", #done=" + data.done[0].count
+	// 	+ ", #error=" + data.error[0].count;
 
-	$('<b style="margin-right:20px">elementi in tabella: </b>').appendTo('.db.count');
-	$('<span class="n-items"/>').text(nitems).appendTo('.db.count');
+	// $('<b style="margin-right:20px">elementi in tabella: </b>').appendTo('.db.count');
+	// $('<span class="n-items"/>').text(nitems).appendTo('.db.count');
 
-	$('<b style="margin-right:20px">by operation: </b>').appendTo('.db.operation');
+	$('.db.operation .cell').empty();
+	$('<b style="margin-right:20px">to do: '+data.job[0].count+'</b>').appendTo('.todo-operation');
+	$('<b style="margin-right:20px">done: '+data.done[0].count+'</b>').appendTo('.done-operation');
+	$('<b style="margin-right:20px">error: '+data.error[0].count+'</b>').appendTo('.error-operation');
 	data.operation
-		.map(x => x.operation + ": " + x.count)
-		.map(txt => $('<div/>').text(txt).appendTo('.db.operation'));
+		.map(x => x.queue+" "+x.operation + ": " + x.count)
+		.map(txt => $('<div/>').text(txt).appendTo('.todo-operation'));
 
-	$('<b style="margin-right:20px">by status: </b>').appendTo('.db.status');
-	data.status
-		.map(x => x.queue + ':' + x.locktag + ": " + x.count)
-		.map(txt => $('<div/>').text(txt).appendTo('.db.status'));
+	data.done_operation
+		.map(x => x.queue+" "+x.operation + ": " + x.count)
+		.map(txt => $('<div/>').text(txt).appendTo('.done-operation'));
+
+	data.error_operation
+		.map(x => x.queue+" "+x.operation + ": " + x.count)
+		.map(txt => $('<div/>').text(txt).appendTo('.error-operation'));
+
+	$('<div class="outer"/>').appendTo('.db.operation .timer');
+	let inner = $('<div class="inner">&nbsp;</div>').appendTo('.db.operation .timer .outer');
+	let w = inner.width;
+	inner.css({width:w}).animate({width:0},reportIntervalTime+1000);
+	// $('<b style="margin-right:20px">by status: </b>').appendTo('.db.status');
+	// data.status
+	// 	.map(x => x.queue + ':' + x.locktag + ": " + x.count)
+	// 	.map(txt => $('<div/>').text(txt).appendTo('.db.status'));
 
 	$('.connections').empty();
 	$('<b style="margin-right:20px">connessioni DB: </b>').appendTo('.connections');
 
-	data.connections.map(txt => $('<div/>').text(txt).appendTo('.connections'))
+	data.connections.map(txt => $('<div/>').text(txt).appendTo('.connections'));
+	reportTimeout = setTimeout(showReport, reportIntervalTime);
 }
 
 function exit() {
@@ -70,6 +115,7 @@ function setN() {
 	n = n - 0;
 	console.log("setn " + n);
 	$.get('setn/' + n).then(() => console.log("set n=" + n + ", done!"));
+	setTimeout(showReport, 1000);
 }
 
 async function getListeDbs() {
@@ -85,7 +131,7 @@ async function getListeDbs() {
 
 	function launch(folderId, tag) {
 		let job = {
-			queue,
+			queue: 'qdata',
 			operation: 'getListaDbs',
 			priority: 100,
 			key1: tag,
@@ -110,7 +156,7 @@ async function getListeDbs() {
 // 	var path = "/dbs/progetti/LO.710.E.D.19.01";
 // 	var folderId = "{B35E558C-8317-4260-985B-C2B93B7B8A5A}";
 // 	let job = {
-// 		queue: 'anas-etl',
+// 		queue: 'qdata',
 // 		operation: 'getFolderMD',
 // 		priority: 10000,
 // 		key1: os,
@@ -136,10 +182,31 @@ function startScanArchivi() {
 	var withcontent = withdoc && confirm("with content");
 
 	let job = {
-		queue,
+		queue: 'qdata',
 		operation: 'startScanArchivi',
 		priority:1000000,
 		withdoc, 
+		withcontent,
+		buildDir: false
+	};
+
+	var msg = JSON.stringify(job, null, 4);
+	if (!confirm(msg))
+		return;
+
+	$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
+		error => alert(error)
+	);
+}
+
+function startScanArchivi2() {
+	var withcontent = confirm("with content");
+
+	let job = {
+		queue:'qdata',
+		operation: 'startScanArchivi2',
+		priority:1000000,
 		withcontent,
 		buildDir: false
 	};
@@ -162,7 +229,7 @@ function startScanDBS(what) {
 	var withcontent = withdoc && confirm("with content");
 
 	let job = {
-		queue,
+		queue:'qdata',
 		operation: 'startScanDBS',
 		priority:2000000,
 		key1: what,

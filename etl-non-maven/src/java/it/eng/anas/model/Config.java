@@ -3,7 +3,12 @@ package it.eng.anas.model;
 import java.util.HashMap;
 
 public class Config extends Model {
-	public String queue ="";
+//	public String processingQueue ="";
+//	public String metadataQueue = "";
+//	public String contentQueue = "";
+
+	public String extractCondition = "1=1";
+	
 	public String outputBasePath = "";
 	public int webServerPort = 5150;
 	public FilenetConfig filenet = new FilenetConfig();
@@ -14,7 +19,7 @@ public class Config extends Model {
 	public int nMaxRetry = 10;
 	public boolean simulazioneErrori = false;
 	public HashMap<String, Integer> schedule = new HashMap<String, Integer>();
-
+	public boolean websocketEnabled= false;
 	
 	public String idProgetti;
 	public String idLavori;

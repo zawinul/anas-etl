@@ -1,0 +1,51 @@
+{
+	"extractCondition": " queue='qcontent' ",
+	
+	"outputBasePath": "c:/temp/anas-etl-out",
+	"webServerPort": 5151,
+	"websocketEnabled": true,
+	
+	"idProgetti": "{CD703774-E2DB-494C-98CE-6B8618E6A761}",
+	"idLavori":   "{A1B84F73-3F41-4BC7-843B-C21EBD1A1829}",
+	"idArchivi":  "{A29BECCA-3445-427B-AE7E-30A8185C1702}",
+	
+	
+	"filenet": {
+		"uri1": "http://dg-pdmpcpe1.anasnet.it:9001/",
+		"uri": "http://dg-pdmpcpe1.anasnet.it:9001/wsi/FNCEWS40MTOM/",
+		"userid": "E94188E",
+		"password": "",
+		"objectstore": "PDM",
+		"stanza": "FileNetP8WSI"
+	},
+	"filenetdb": {
+		"driverclass":"oracle.jdbc.driver.OracleDriver",
+        "url": "jdbc:oracle:thin:@//ecc1-scan1.it1.ocm.s7264320.oraclecloudatcustomer.com:1521/pdmprod",
+        "user": "PDM_RO",
+        "password": "PDM_RO"
+		
+	},
+	"db": {
+		"driverClass": "com.mysql.cj.jdbc.Driver",
+		"url": "jdbc:mysql://localhost:3306/anas-etl-prod",
+		"username": "anas-etl-prod",
+		"password": ""
+	},
+	"shortPause": [
+		100,
+		2000
+	],
+	"longPause": [
+		20000,
+		40000
+	],
+	"nMaxRetry": 10,
+	"simulazioneErrori": false,
+	"schedule": {
+		"mer 18:40": 8,
+		"lun 07:10": 5,
+		"mar 07:10": 6,
+		"dom 17:10": 11,
+		"sab 07:10": 7
+	}
+}

@@ -53,3 +53,35 @@ body {
 	padding: 1px 10px;
 	font-size: .9em;
 }
+
+.db.operation {
+	overflow: hidden;
+}
+.db.operation .cell {
+	float: left;
+	width:20%;
+	overflow: hidden; 
+}
+
+.db.operation .timer {
+	min-height: 30px;
+}
+
+.db.operation .timer .outer {
+	border: 1px solid #c0c0c0;
+	position: relative;
+	top: 10%;
+	left:10%;
+	width:40%;
+	height: 20px;
+	padding:0;
+}
+
+
+.db.operation .timer .inner {
+	background-color: #e0e0e0;
+	margin:0;
+	border:0;
+	padding:0;
+	height: 20px;
+}

@@ -2,10 +2,19 @@ package it.eng.anas.monitor;
 
 
 import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.Connection;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.eclipse.jetty.websocket.api.*;
+import org.eclipse.jetty.websocket.api.annotations.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import it.eng.anas.Event;
 import it.eng.anas.Log;
@@ -15,7 +24,9 @@ import it.eng.anas.db.DbJobManager;
 import it.eng.anas.db.ResultSetToJson;
 import it.eng.anas.db.SimpleDbOp;
 import it.eng.anas.etl.AnasEtlJob;
+import it.eng.anas.etl.AnasEtlWorker;
 import it.eng.anas.model.Config;
+import it.eng.anas.monitor.StatusReport.WorkerSerializer;
 import it.eng.anas.threads.ThreadManager;
 
 public class WebServer {
@@ -27,6 +38,10 @@ public class WebServer {
 	public void start() {
 		Config c = Utils.getConfig();
 		int port = c.webServerPort;
+
+		if (c.websocketEnabled)
+			spark.Spark.webSocket("/monitor", EchoWebSocket.class);
+		
 		spark.Spark.port(port);
 		spark.Spark.staticFileLocation("/web");
 		spark.Spark.get("/hello", (req, res) -> {
@@ -61,14 +76,18 @@ public class WebServer {
 			return "ok";
 		});
 		spark.Spark.get("/report", (req, res) -> {
-			return new StatusReport().getReport();
+			try {
+				return new StatusReport().getReport();
+			} catch (Exception e) {
+				e.printStackTrace();
+				return e.getMessage();
+			}
 		});
 
 		spark.Spark.post("/insertJob", (req, res) -> {
 			DbJobManager<AnasEtlJob> manager = new DbJobManager<AnasEtlJob>("insertJob", AnasEtlJob.class);
 			String json = req.body();
 			AnasEtlJob input = Utils.getMapper().readValue(json, AnasEtlJob.class);
-			input.queue = Utils.getConfig().queue;
 			AnasEtlJob job = manager.insertNew(input);
 			manager.close();
 			return Utils.getMapper().writeValueAsString(job);
@@ -107,7 +126,66 @@ public class WebServer {
 			Event.emit("exit");
 			return "exit launched";
 		});
+		
+		spark.Spark.init();
+//		(new Thread() {
+//			public void run() {
+//				for(int i=0; i<100;i++) {
+//					Utils.sleep(5000);
+//					sendToCLient("aaa 111 "+i);
+//				}
+//			}
+//		}).start();
+		
+		StatusReport.init();
 	}
 
+    // Store sessions if you want to, for example, broadcast a message to all users
+    public  static final Queue<Session> sessions = new ConcurrentLinkedQueue<>();
+	
+    @WebSocket
+	public static class EchoWebSocket {
+
+
+	    @OnWebSocketConnect
+	    public void connected(Session session) {
+	        sessions.add(session);
+	    }
+
+	    @OnWebSocketClose
+	    public void closed(Session session, int statusCode, String reason) {
+	        sessions.remove(session);
+	    }
+
+	    @OnWebSocketMessage
+	    public void message(Session session, String message) throws IOException {
+	        System.out.println("Got: " + message);   // Print message
+	        //session.getRemote().sendString(message); // and send it back
+	    }
+	}
+    
+    private static ObjectMapper webSocketMapper = Utils.getMapper();
+    static {
+    	webSocketMapper = Utils.getMapper();
+		SimpleModule module = new SimpleModule();
+		module.addSerializer(AnasEtlWorker.class, new WorkerSerializer());
+		webSocketMapper.registerModule(module);
+
+    }
+	
+    public static void sendToClient(String x, Object obj)  {
+    	for(Session session: sessions) {
+    		try {
+    			ObjectNode n = webSocketMapper.createObjectNode();
+    			n.set(x,  webSocketMapper.valueToTree(obj));
+    			String json = webSocketMapper.writeValueAsString(n);
+    			if (session.isOpen())
+    				session.getRemote().sendString(json);
+			} catch (IOException e) {
+				Log.web.log("Websocket error "+e.getMessage());
+				e.printStackTrace();
+			}
+    	}
+    }
 	
 }

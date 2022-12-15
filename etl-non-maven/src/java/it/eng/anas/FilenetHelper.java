@@ -318,8 +318,8 @@ public class FilenetHelper {
 		for(String p:documentPropertiesExclusion)
 			pf.addExcludeProperty(p);
 		
-
-		Document doc = Factory.Document.fetchInstance(os, new Id(id), pf);
+		String guid = FilenetDBHelper.dbid2guid(id);
+		Document doc = Factory.Document.fetchInstance(os, new Id(guid), pf);
 		Properties props = doc.getProperties();
 
 		
