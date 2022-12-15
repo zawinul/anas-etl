@@ -7,36 +7,35 @@ import it.eng.anas.Log;
 
 public abstract class Worker extends Thread {
 	public String tag;
-	public int priority;
-	public int position;
 	public boolean exitRequest = false;
 	public List<Runnable> cleanup = new ArrayList<Runnable>();
-	public String status = "starting";
-
+	public String workerStatus = "starting";
+	public int index;
+	
 	public void log(String x) { 
 		Log.etl.log(tag+":"+x);
 	}
 	
 
-	public Worker(String tag, int priority) {
+	public Worker(String tag) {
 		super(tag);
 		this.tag = tag;
-		this.priority = priority;
 	}
 	
 	
 	@Override
 	public void run() {
 		try {
-			status = "started";
+			workerStatus = "started";
 			execute();
 		}
 		catch(Exception e) {
+			Log.etl.log("ERRORE CHE FA USCIRE DAL WORKER");
 			e.printStackTrace();
-			status = e.getMessage();
+			workerStatus = e.getMessage();
 		}
 
-		status = "cleanup";
+		workerStatus = "cleanup";
 		for(Runnable c: cleanup) {
 			try {
 				if (c!=null)
@@ -46,7 +45,8 @@ public abstract class Worker extends Thread {
 				e.printStackTrace();
 			}
 		}
-		status = "after cleanup, exit";
+		workerStatus = "after cleanup, exit";
+		
 	}
 	
 	public abstract void execute() throws Exception;

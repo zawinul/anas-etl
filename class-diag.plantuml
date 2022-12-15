@@ -10,45 +10,53 @@ package  #EEEEFF {
 	}
 	class AnasEtlWorker {
 	}
+	class DBJob{
+	}
+	class AnasETLJob{
+	}
+	DBJob <|-- AnasETLJob
+
+
 	Worker <|-- DbConsumeWorker
 	DbConsumeWorker <|-- AnasEtlWorker
-	note right of DbConsumeWorker : thread che scoda i\njob e li esegue
+	note bottom of DbConsumeWorker : thread che scoda i\njob e li esegue
 	note right of Worker : è un java.lang.Thread
-	note right of AnasEtlWorker : scoda i job ANAS\ne li esegue
+	note top of AnasEtlWorker : scoda i job ANAS\ne li esegue
 
-}
-
-package  #F0FFF0 {
 	class WorkerFactory {
 		public Worker create(...);
 	}
-	WorkerFactory <|-- AnasEtlWorkerFactory
-	note right of WorkerFactory : chiamato a runtime per \ngenerare nuovi thread
+	note top of WorkerFactory : chiamato a runtime per \ngenerare nuovi thread
 
+	AnasEtlWorker->AnasETLJob : consuma
+	AnasEtlWorker->AnasETLJob : genera
 }
+
 
 package #FFEEEE {
 	class ThreadManager {}
 	class ScheduleHelper {
 		int getNumOfThread()
 	}
-	note right of ScheduleHelper : decide quanti thread\ncontemporaneamente attivi\nin base a orario e configurazione
-	note right of ThreadManager : start e stop dei thread
+	note bottom of ScheduleHelper : decide quanti thread\ncontemporaneamente attivi\nin base a orario e configurazione
+	note right of ThreadManager : start e stop\ndei thread
 }
 
-AnasEtlWorkerFactory --> AnasEtlWorker : genera
+WorkerFactory --> AnasEtlWorker : genera
 
-MainThreadStart --> ThreadManager : usa
-MainThreadStart --> WorkerFactory : genera
-MainThreadStart --> WebServer : usa
+Main --> ThreadManager : usa
+Main --> WorkerFactory : genera
+Main --> WebServer : usa
 ' WorkerFactory --> Worker : genera
 AnasEtlWorker --> FileHelper : usa
 AnasEtlWorker --> FileNetHelper : usa
+AnasEtlWorker --> FileNetDBHelper : usa
 ThreadManager --> ScheduleHelper : usa
 ThreadManager --> WorkerFactory : usa
-note top of MainThreadStart : START!
+note top of Main : START!
 note top of WebServer : gestisce le API REST per\n monitoraggio e conduzione
-note left of FileHelper: scrive su disco
-note right of FileNetHelper : legge da FileNet
+note bottom of FileHelper: scrive su disco
+note bottom of FileNetHelper : legge da FileNet
+note bottom of FileNetDBHelper : legge da DB FileNet
 
 @enduml

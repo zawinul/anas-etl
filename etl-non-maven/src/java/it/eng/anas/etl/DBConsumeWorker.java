@@ -2,30 +2,29 @@ package it.eng.anas.etl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.eng.anas.Event;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
 import it.eng.anas.model.DBJob;
 import it.eng.anas.threads.Worker;
 
-public class DBConsumeWorker extends Worker {
-	public String queueName;
+public class DBConsumeWorker<T extends DBJob> extends Worker {
 	public ObjectMapper mapper;
-	public DbJobManager jobManager;
+	public DbJobManager<T> jobManager;
 	public boolean closed = false;
 	public int waitOnBusy = 500;
-	public DBJob currentJob;
+	public T currentJob;
 	
 	public void log(String msg) {
 		if(currentJob!=null)
 			super.log("job-"+currentJob.id+":"+msg);
 	}
 
-	public DBConsumeWorker(String tag, String queueName, int priority) {
+	public DBConsumeWorker(String tag, Class<T> tclass) {
 
-		super(tag, priority);
-		this.queueName = queueName;
+		super(tag);
 		
-		jobManager = new DbJobManager(tag);
+		jobManager = new DbJobManager<T>(tag, tclass);
 		final DBConsumeWorker t = this;
 		cleanup.add(new Runnable() {
 			public void run() {
@@ -36,29 +35,36 @@ public class DBConsumeWorker extends Worker {
 	
 	public void execute() throws Exception {
 		log("start");
+		workerStatus = "started";
+		Event.emit("worker-changed", this);
 		mapper = Utils.getMapper();
 		while(true) {
 			if (exitRequest) {
-				status = "exit request";
+				workerStatus = "exit request";
+				Event.emit("worker-changed", this);
 				break;
 			}
 			singleStep();
+			Utils.shortPause();
 		}
 		log("end");
 	}
 
-	public void onJob(DBJob job) throws Exception {
+	public void onJob(T job) throws Exception {
 		log("onJob "+job);
-		status = "on job "+job.id+" "+job.operation;
+		workerStatus = "on job "+job.id+" "+job.operation;
+		Event.emit("worker-changed", this);
 		Utils.shortPause();
 	}
 
 	private void singleStep() throws Exception {
-		DBJob job = jobManager.extract(queueName);
+		workerStatus = "getting job";
+		T job = jobManager.extract();
 		currentJob = job;
 		if (job==null) {
-			status = "coda vuota";
-			Utils.longPause();
+			workerStatus = "coda vuota";
+			Event.emit("worker-changed", this);
+			Utils.shortPause();
 			//log("Coda vuota: "+queueName);
 			return;
 		}
@@ -66,16 +72,18 @@ public class DBConsumeWorker extends Worker {
 		log("onMessage "+job.operation);
 		
 		try {
-			status = "on job "+job.id;
+			workerStatus = "on job "+job.id;
+			Event.emit("worker-changed", this);
 			onJob(job);
-			log("ok");
+			workerStatus = "job "+job.id+" ack";
+			Event.emit("worker-changed", this);
 			jobManager.ack(job, "ok");
-			Utils.shortPause();
 		} 
 		catch (Exception e) {
 			log("error on receive BL: "+e.getMessage());
 			jobManager.nack(job, Utils.getStackTrace(e));
-			status = e.getMessage();
+			workerStatus = "job "+job.id+" "+e.getMessage();
+			Event.emit("worker-changed", this);
 			throw e;
 		}
 		finally {
@@ -86,6 +94,7 @@ public class DBConsumeWorker extends Worker {
 	public void close() {
 		if (jobManager!=null)
 			jobManager.close();
+		Event.emit("worker-changed", this);
 		jobManager = null;
 	}
 }

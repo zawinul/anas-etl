@@ -7,10 +7,10 @@ import it.eng.anas.Utils;
 
 public abstract class Model {
 	
-	private static ObjectMapper oneLineMapper = Utils.getMapperOneLine();
+	private static ObjectMapper mapper = Utils.getMapper();
 	public String toString() {
 		try {
-			return oneLineMapper.writeValueAsString(this);
+			return mapper.writeValueAsString(this);
 		} catch (Exception e) {
 			Log.etl.log("model to string error: "+e.getMessage());
 			return super.toString();

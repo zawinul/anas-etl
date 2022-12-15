@@ -1,14 +1,11 @@
 package it.eng.anas.threads;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import it.eng.anas.Log;
 import it.eng.anas.ScheduleHelper;
 
 public class ThreadManager {
 	public int NMAXTHREADS = 200;
-	public List<Worker> threads = new ArrayList<Worker>();
+	public Worker threads[] = new Worker[NMAXTHREADS];
 	public WorkerFactory factory;
 	public int forcedNumberOfThreads = 0;
 	
@@ -28,82 +25,65 @@ public class ThreadManager {
 		updateNumOfThreads();
 	}
 	
-	public void addOne() {
+
+	public Worker create(int i) {
 		log("addOne");
-		final Worker job = factory.create(threads);
-		job.cleanup.add( new Runnable() {
+		String tag = (""+(1000+i)).substring(1);
+		final Worker wrk = factory.create("anas-etl", threads, "WRK-"+tag);
+		wrk.index = i;
+		wrk.cleanup.add( new Runnable() {
 			public void run() {
-				log("thread manager cleanup");
-				if (threads.contains(job))
-					threads.remove(job);
+				wrk.workerStatus = "cleanup";
+				threads[i] = null;
 				updateNumOfThreads();
 			}
 		});
-		threads.add(job);
-		job.start();
+		threads[i] = wrk;
+		wrk.start();
+		return wrk;
 	}
-
 	
-	public void deleteOne() {
-		log("deleteOne");
-		if (threads.size()==0)
-			return;
-		Worker selected = threads.get(0);
-		int minprio = selected.priority;
-		for(Worker t: threads) {
-			if (t.priority<minprio) {
-				minprio = t.priority;
-				selected = t;
-			}
-		}
-		threads.remove(selected);
-		selected.exitRequest = true;
-	}
-
-
 	public void updateNumOfThreads() {
 		try {
 			int nt = forcedNumberOfThreads;
 			if (nt<0)
 				nt = ScheduleHelper.getNumOfThread();
-	
-			int cur = threads.size();
-			if (cur<nt) {
-				for(int i=cur; i<nt; i++) {
-					log("nt="+nt+" c="+cur+ " add one");
-					addOne();
-				}
-			}
-			
-			for(int i=nt; i<cur; i++) {
-				log("nt="+nt+" c="+cur+ " delete one");
-				deleteOne();
-			}
-			for(int i=0; i<threads.size(); i++)
-				threads.get(i).position = i;
 
+			for(int i=0; i<nt;i++) {
+				if (threads[i] == null) 
+					threads[i] = create(i);
+			}
+			for(int i=nt; i<NMAXTHREADS;i++) {
+				if (threads[i] != null) 
+					threads[i].exitRequest = true;
+			}
 		} 
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-
 	}
-	
+
 	public void killAll(boolean andWait) {
-		List<Worker> temp = new ArrayList<Worker>(threads);
-		threads.clear();
+		Worker temp[] = new Worker[threads.length];
 		forcedNumberOfThreads = 0;
+		int n = 0;
+		for(var i=0; i<threads.length;i++) {
+			if (threads[i]!=null) {
+				temp[n] = threads[i];
+				temp[n].exitRequest = true;
+				threads[i] = null;
+				n++;
+			}
+		}
 		
-		for(Worker t: temp)
-			t.exitRequest = true;
+		
 		if (andWait) {
-			for(Worker t: temp) {
+			for(var i=0; i<n;i++) {
 				try {
-					t.join();
-					log("join thread "+t.tag);
+					log("join thread "+temp[i].tag);
+					temp[i].join();
 				} catch (Exception e) {
-					log("ERROR on join thread "+t.tag);
+					log("ERROR on join thread "+temp[i].tag);
 					//e.printStackTrace();
 				}
 			}

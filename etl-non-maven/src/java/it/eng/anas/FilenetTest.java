@@ -192,7 +192,7 @@ public class FilenetTest extends FilenetHelper {
 		}
 	}
 	
-	public static void main(String args[])throws Exception {
+	public static void main(String args[])  throws Exception {
 		new FilenetTest().test6();
 		
 		Event.emit("exit");

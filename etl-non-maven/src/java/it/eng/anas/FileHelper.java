@@ -72,6 +72,31 @@ public class FileHelper {
 		}
 	}
 
+
+	
+	public File getDir(String dirPath)  {
+		try {
+			String curDirPath = Utils.getConfig().outputBasePath;
+			File curDir = new File(curDirPath);
+
+			if (!curDir.exists()) 
+				curDir.mkdir();
+			
+			String parts[] = dirPath.split("/");
+			for(int i=0; i<parts.length; i++) {
+				File child = new File(curDir, parts[i]);
+				if (!child.exists())
+					child.mkdir();
+				curDir = child;
+			}
+			
+			return curDir;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
 	
 	public File getOutputDirFile(String filePath)  {
 		try {
