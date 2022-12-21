@@ -133,7 +133,7 @@ public class Utils {
 			String json = IOUtils.toString(r);
 			if (!json.equals(jsonCfg)) {
 				jsonCfg = json;
-				Log.etl.log("Config changed: "+json);
+				Log.log("Config changed: "+json);
 				cfg = getMapper().readValue(json, Config.class);
 				
 				if (new File("./password.filenet").exists())

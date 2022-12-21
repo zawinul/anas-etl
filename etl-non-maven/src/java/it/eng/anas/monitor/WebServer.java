@@ -45,13 +45,13 @@ public class WebServer {
 		spark.Spark.port(port);
 		spark.Spark.staticFileLocation("/web");
 		spark.Spark.get("/hello", (req, res) -> {
-			Log.web.log(req.url().toString());
+			Log.log(req.url().toString());
 			
 			return "Hello World "+Math.random()+ " "+req.url();
 		});
 
 		spark.Spark.get("/setn/:n", (req, res) -> {
-			Log.web.log(req.url().toString());
+			Log.log(req.url().toString());
 			int n = Integer.parseInt(req.params("n"));
 			ThreadManager.mainThreadManager.setNumberOfThreads(n);
 			return "Hello World n="+n+ " "+req.url();
@@ -67,7 +67,7 @@ public class WebServer {
 					for(StackTraceElement element:tr) {
 						w.write("\t"+element.toString()+"\n");						
 					}
-					Log.etl.log(t+"\n");
+					Log.log(t+"\n");
 				}
 				w.close();
 			} catch (Exception e) {
@@ -181,9 +181,9 @@ public class WebServer {
     			String json = webSocketMapper.writeValueAsString(n);
     			if (session.isOpen())
     				session.getRemote().sendString(json);
-			} catch (IOException e) {
-				Log.web.log("Websocket error "+e.getMessage());
-				e.printStackTrace();
+			} catch (Exception e) {
+				Log.log("Websocket error "+e.getMessage());
+				//e.printStackTrace();
 			}
     	}
     }

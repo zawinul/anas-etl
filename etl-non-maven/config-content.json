@@ -1,4 +1,6 @@
 {
+	"logConfigFile": "log4j-content.properties",
+
 	"extractCondition": " queue='qcontent' ",
 	
 	"outputBasePath": "c:/temp/anas-etl-out",

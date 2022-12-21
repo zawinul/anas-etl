@@ -25,7 +25,7 @@ import it.eng.anas.db.FilenetDBHelper;
 import it.eng.anas.db.ResultSetToJson;
 import it.eng.anas.db.SimpleDbOp;
 
-public class JobProcessorArchivi {
+public class OLD3_JobProcessorArchivi {
 	public Connection fnconn;
 	public FilenetDBHelper db;
 	public FileHelper fileh = new FileHelper();
@@ -52,7 +52,7 @@ public class JobProcessorArchivi {
 		return _docfieldmap;
 	}
  	
-	public JobProcessorArchivi(AnasEtlWorker caller) {
+	public OLD3_JobProcessorArchivi(AnasEtlWorker caller) {
 		this.caller = caller;
 		try {
 			if (Utils.getConfig().directFilenetDbAccess) {
@@ -279,12 +279,6 @@ public class JobProcessorArchivi {
 		fileh.saveJsonObject("archivi2/compartimenti-job.json", compartimentiJob);
 		
 	}
-	
-	private static class SavedJob {
-		public AnasEtlJob job;
-		public String titolo;
-	}
-	
 	public void getArchiviNodeByApi(AnasEtlJob job) throws Exception {
 		String id = job.docId;
 		
@@ -331,27 +325,23 @@ public class JobProcessorArchivi {
 		// Uses fetchRows to test the SQL statement.
 		RepositoryRowSet rowSet = searchScope.fetchRows(sql, 10000, null, true);
 		Iterator iter = rowSet.iterator();
-		
-		List<SavedJob> subjobs = new ArrayList<>();
-		boolean costruzioniFound=false;
 		while(iter.hasNext()) {
 			RepositoryRow row = (RepositoryRow) iter.next();
 			String childId = row.getProperties().getIdValue("Id").toString();
 			Integer childNumero = row.getProperties().getInteger32Value("numero");
-			String childTitolo = row.getProperties().getStringValue("titolo").trim().toLowerCase();
-			int subprio = job.priority-1;
-//			if (level==2) {
-//				if (!titolo.trim().toLowerCase().equals("nuove costruzioni"))
-//					subprio-= 10000;
-//				else
-//					subprio -=1000;
-//			}
-//			if (level>2)
-//				subprio -= 1;
-			
-			if (childTitolo.equals("nuove costruzioni")) {
-				costruzioniFound = true;
+			String childTitolo = row.getProperties().getStringValue("titolo");
+			int subprio = job.priority;
+			if (level==2) {
+				if (!titolo.trim().toLowerCase().equals("nuove costruzioni"))
+					subprio-= 10000;
+				else
+					subprio -=1000;
 			}
+			if (level>2)
+				subprio -= 1;
+			
+
+			
 			String nextpath = job.path+"."+childNumero;
 			AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
 			subjob.operation = "getArchiviNode";
@@ -359,36 +349,20 @@ public class JobProcessorArchivi {
 			subjob.path = nextpath;
 			
 			subjob.key1 = level==1 ? nextdir : job.key1; // compartimento
-			//subjob.key2 = level==2 ? nextdir : job.key2; // compartimento/subfondo
-			subjob.key2 = job.key2;
+			subjob.key2 = level==2 ? nextdir : job.key2; // compartimento/subfondo
 			subjob.key3 = nextpath; // sequenza numeri
 
 			
 			subjob.docId = childId;
 			subjob.priority = subprio;
 			subjob.dir = nextdir;
-			SavedJob sj = new SavedJob();
-			sj.titolo = childTitolo;
-			sj.job = subjob;
-			subjobs.add(sj);
+			jobManager.insertNew(subjob);
 			nchild++;
 //			
 //			if (Global.debug && nchild>50)
 //				break;
 
 		}
-		if (costruzioniFound) {
-			for(SavedJob sjob:subjobs) {
-				if (!sjob.titolo.equals("nuove costruzioni"))
-					sjob.job.priority-=1000;
-				else
-					sjob.job.priority-=10000;
-				sjob.job.key2 = sjob.titolo;
-			}
-		}
-		
-		for(SavedJob sjob:subjobs)
-			jobManager.insertNew(sjob.job);
 		
 
 		
@@ -410,177 +384,23 @@ public class JobProcessorArchivi {
 			jobManager.insertNew(subjob);
 		}
 	}
-		
-
-	
-	public void getArchiviNode2ByApi(AnasEtlJob job) throws Exception {
-		String id = job.docId;		
-		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
-		FilenetHelper fnet = caller.getFilenetHelper();
-		int level = job.path.split("\\.").length;
-		ObjectNode node = fnet.getDocumentMetadata("PDMASD", id);
-		if (node==null)
-			throw new Exception("doc not found "+id);
-
-		int numero = node.get("numero").asInt();
-		String titolo = node.get("titolo").asText();
-		String	nextdir = job.dir+"/"+numero;
-		boolean hasContent = false;
-		JsonNode jsize = node.get("ContentSize");
-		if (jsize!=null)
-			hasContent = jsize.asLong()>0;
-		
-		int nchild=0;
-		SearchSQL sql = new SearchSQL();
-		sql.setMaxRecords(10000);
-		sql.setSelectList("d.Id,d.codiceIdentificativoArchivio,d.numero,d.titolo");
-		sql.setFromClauseInitialValue("AsdElementoArchivistico", "d", true);
-		String whereClause = "d.elementoArchivisticoParentRef="+id;
-		sql.setWhereClause(whereClause);
-
-		ObjectStore os = fnet.getOS("PDMASD");
-		SearchScope searchScope = new SearchScope(os);
-		RepositoryRowSet rowSet = searchScope.fetchRows(sql, 10000, null, true);
-		Iterator iter = rowSet.iterator();		
-		while(iter.hasNext()) {
-			RepositoryRow row = (RepositoryRow) iter.next();
-			String childId = row.getProperties().getIdValue("Id").toString();
-			Integer childNumero = row.getProperties().getInteger32Value("numero");
-			String childTitolo = row.getProperties().getStringValue("titolo").trim().toLowerCase();
-			int subprio = job.priority-1;
-			String nextpath = job.path+"."+childNumero;
-			Log.log(nextpath+" "+childTitolo);
-			AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
-			subjob.operation = "getArchiviNode2";
-			subjob.queue = "qdata";
-			subjob.path = nextpath;
-			subjob.key3 = nextpath; 
-			
-			subjob.docId = childId;
-			subjob.priority = subprio;
-			subjob.dir = nextdir;
-			jobManager.insertNew(subjob);
-			nchild++;
-		}
-		String savefile=null;
-		if (nchild==0 && !hasContent)  // foglia
-			savefile = job.dir+"/"+job.path;
-		else 
-			savefile = nextdir+"/"+job.path+" root";
-		
-		fileh.saveJsonObject("archivi2/"+savefile+".json", node);
-		
-		if (hasContent && job.withcontent) {
-			AnasEtlJob contentjob = AnasEtlJob.createSubJob(job);
-			contentjob.operation = "getArchiviContent2";
-			contentjob.queue = "qcontent";
-			contentjob.priority = job.priority + CONTENT_DELTA;
-			contentjob.dir = savefile;
-				
-			jobManager.insertNew(contentjob);
-		}
-	}
-
-	
-	
-	
 	public void getArchiviContent2(AnasEtlJob job) throws Exception {
 		FilenetHelper fnet = caller.getFilenetHelper();
 		String id = FilenetDBHelper.dbid2guid(job.docId);
-		List<FilenetHelper.ContentInfo> contents = fnet.getContentTransfer("PDMASD",  id, true);
+		List<FilenetHelper.ContentInfo> contents = fnet.getContentTransfer(job.os,  id, true);
 		for(int i=0;i<contents.size(); i++) {
 			FilenetHelper.ContentInfo content = contents.get(i);
 			//String filename = i+"."+content.filename;
 			String filepath = "archivi2/"+job.dir+" "+content.filename;
-			Log.log("save "+filepath);
 			fileHelper.save(filepath, content.stream);	
 		}
+
 	}
-	
-	public void startArchiviNode(AnasEtlJob job) throws Exception {
-		String nodeId = findNodeId(job.path);
-		if (nodeId==null)
-			throw new Exception("path not found: "+job.path);
-		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
-		String parts[] = job.path.split("\\.");
-
-		AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
-		subjob.operation = "getArchiviNode2";
-		subjob.docId = nodeId;
-		subjob.key1 = parts[0];
-		subjob.key2 = job.path;
-		subjob.key3 = job.path;
-		jobManager.insertNew(subjob);
-	}
- 	
-	public String findNodeId(String path) throws Exception {
-		String parts[] = path.split("\\.");
-
-		String id=null;
-		FilenetHelper fnet = caller.getFilenetHelper();
-		ObjectStore os = fnet.getOS("PDMASD");
-
-		SearchSQL mainsql = new SearchSQL();
-		//mainsql.setMaxRecords(1);
-		String select = "d.Id,d.codiceIdentificativoArchivio,d.numero";
-		mainsql.setSelectList(select);
-		String myClassName1 = "AsdElementoArchivistico";
-		String myAlias1 = "d";
-		boolean subclassesToo = true;
-		mainsql.setFromClauseInitialValue(myClassName1, myAlias1, subclassesToo);
-		String whereClause = "d.elementoArchivisticoParentRef IS NULL and d.codiceIdentificativoArchivio='"+parts[0]+"'";
-		mainsql.setWhereClause(whereClause);
-
-		Log.log("SQL: " + mainsql.toString());
-		SearchScope searchScope = new SearchScope(os);
-		RepositoryRowSet rowSet = searchScope.fetchRows(mainsql, null, null, true);
-		Iterator iter = rowSet.iterator();
-		while(iter.hasNext()) {
-			RepositoryRow row = (RepositoryRow) iter.next();
-			id = row.getProperties().getIdValue("Id").toString();
-			String arch = row.getProperties().getStringValue("codiceIdentificativoArchivio");
-			Log.log("arch="+arch);
-			break;
-		}
-		for(int i=1; i<parts.length;i++) {
-			int numero = Integer.parseInt(parts[i]);
-			SearchSQL sql = new SearchSQL();
-			//sql.setMaxRecords(1);
-			String sel2 = "d.Id,d.numero,d.elementoArchivisticoParentRef";
-			sql.setSelectList(sel2);
-			sql.setFromClauseInitialValue(myClassName1, myAlias1, subclassesToo);
-			//String whereClause2 = "d.numero="+numero+ " AND d.elementoArchivisticoParentRef="+id;
-			String whereClause2 = "d.numero="+numero+" AND d.elementoArchivisticoParentRef="+id;
-			sql.setWhereClause(whereClause2);
-
-			Log.log("SQL: " + sql.toString());
-			SearchScope searchScope2 = new SearchScope(os);
-			RepositoryRowSet rowSet2 = searchScope2.fetchRows(sql, null, null, true);
-			Iterator iter2 = rowSet2.iterator();
-			String parentId = id;
-			id = null;
-			while(iter2.hasNext()) {
-				RepositoryRow row = (RepositoryRow) iter2.next();
-				int n = row.getProperties().getInteger32Value("numero");
-				String parent = row.getProperties().getIdValue("elementoArchivisticoParentRef").toString();
-				Log.log("n"+n+" parent="+parent);
-				if (n==numero && parent.equals(parentId)) {
-					id = row.getProperties().getIdValue("Id").toString();
-					break;
-				}
-				break;
-			}
-		}
-		return id;
-	}
-	
-
 	
 	public static void main(String args[]) throws Exception {
 		AnasEtlWorker worker = new AnasEtlWorker("test");
-		JobProcessorArchivi proc = new JobProcessorArchivi(worker);
-		//proc.startScanArchiviByAPI(null);
-		String id = proc.findNodeId("AN.8");
+		OLD3_JobProcessorArchivi proc = new OLD3_JobProcessorArchivi(worker);
+		proc.startScanArchiviByAPI(null);
 		Event.emit("exit");
 		Log.log("done!");
 	}

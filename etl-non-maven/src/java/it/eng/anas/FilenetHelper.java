@@ -331,8 +331,8 @@ public class FilenetHelper {
 			setJsonPropertyValue(prop, prop.getPropertyName(), ret);
 		}
 
-		ret.set("ClasseDocumentale_SymbolicName", mapper.valueToTree(doc.get_ClassDescription().get_SymbolicName()));
-		ret.set("ClasseDocumentale", mapper.valueToTree(doc.get_ClassDescription().get_DisplayName()));
+//		ret.set("ClasseDocumentale_SymbolicName", mapper.valueToTree(doc.get_ClassDescription().get_SymbolicName()));
+//		ret.set("ClasseDocumentale", mapper.valueToTree(doc.get_ClassDescription().get_DisplayName()));
 
 		ContentElementList clist = doc.get_ContentElements();
 		@SuppressWarnings("unchecked")

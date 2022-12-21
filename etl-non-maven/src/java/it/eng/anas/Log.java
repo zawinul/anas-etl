@@ -1,37 +1,45 @@
 package it.eng.anas;
 
-
+import org.apache.log4j.PropertyConfigurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Log {
 	
-	public static Log etl = new Log("etl");
-	public static Log web = new Log("web");
-	public static Log db = new Log("db");
-	public static Log fnet = new Log("fnet");
+	private static Logger logger = LoggerFactory.getLogger("etl");
+	private static String configFile;
+
+	static {
+		Event.addListener("config-change", new Runnable() {
+			
+			public void run() {
+				String lf = Utils.getConfig().logConfigFile;
+				if (lf!=null) {
+					if (!lf.equals(configFile)) {
+						configFile = lf;
+						PropertyConfigurator.configure(lf);
+						logger = LoggerFactory.getLogger("etl");
+						log("log reconfigured from file "+lf);
+					}
+				}
+			}
+		});
+	}
 	
-	private String logtag;
-	
-	private Log() {	
-	}
-
-	private Log(String logtag) {
-		super();
-		this.logtag = logtag;
-	}
 	
 
-	public void log(String x) {
-		System.out.println(logtag+":"+x);
+	public static void log(String x) {
+		logger.info(x);
 	}
 
-	public void warn(String x) {
-		System.out.println(logtag+":W:"+x);
+	public static void warn(String x) {
+		logger.warn(x);
 	}
 
 
-	public void log(Exception e) {
-		log("Exception:"+e.getMessage());
+	public static void log(Exception e) {
 		e.printStackTrace();
+		logger.error(e.getMessage(), e);
 	}
 
 }

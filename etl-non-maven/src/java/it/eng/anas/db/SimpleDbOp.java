@@ -125,7 +125,7 @@ public class SimpleDbOp  {
 		for(Object ob:x) {
 			if (ob != null && ob instanceof Connection) {
 				String shortsql = sql.length()>50 ? sql.substring(0,50)+"..." : sql;
-				Log.db.log("chiudo la connection "+ob +" "+ shortsql);
+				Log.log("chiudo la connection "+ob +" "+ shortsql);
 				DBConnectionFactory.close((Connection) ob);
 			}
 		}
@@ -535,8 +535,8 @@ public class SimpleDbOp  {
 	
 	protected SimpleDbOp logError() {
 		if (error) {
-			Log.db.log("Errore DBOp, sql="+sql);
-			Log.db.log(lastException);
+			Log.log("Errore DBOp, sql="+sql);
+			Log.log(lastException);
 		}
 		return this;
 	}
@@ -548,7 +548,7 @@ public class SimpleDbOp  {
 		error = true;
 		lastException = new SimpleDbOpException(msg);
 		if (!inibisciEccezioni) {
-			Log.db.warn("SimpleDbOpt exception, chiusura forzata, sql="+sql);
+			Log.warn("SimpleDbOpt exception, chiusura forzata, sql="+sql);
 			close();
 			throw new SimpleDbOpException(msg);
 		}
@@ -558,8 +558,8 @@ public class SimpleDbOp  {
 		error = true;
 		lastException = e;
 		if (!inibisciEccezioni) {
-			Log.db.warn("SimpleDbOpt exception: "+e.getMessage());
-			Log.db.warn("chiusura forzata, sql="+sql);
+			Log.warn("SimpleDbOpt exception: "+e.getMessage());
+			Log.warn("chiusura forzata, sql="+sql);
 			close();
 			throw new SimpleDbOpException(e);
 		}
@@ -569,7 +569,7 @@ public class SimpleDbOp  {
 		error = true;
 		lastException = new SimpleDbOpException(msg, e);
 		if (!inibisciEccezioni) {
-			Log.db.warn("SimpleDbOpt exception, chiusura forzata, sql="+sql);
+			Log.warn("SimpleDbOpt exception, chiusura forzata, sql="+sql);
 			close();
 			throw new SimpleDbOpException(msg, e);
 		}
@@ -595,7 +595,7 @@ public class SimpleDbOp  {
 	public void cleanup()  {
 		try {
 			if (!closed) {
-				Log.db.warn("SimpleDBOp Finalize: mancata chiamato di close(), sql="+sql);
+				Log.warn("SimpleDBOp Finalize: mancata chiamato di close(), sql="+sql);
 				close();
 			}
 		} 

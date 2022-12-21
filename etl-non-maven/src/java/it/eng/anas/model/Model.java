@@ -12,7 +12,7 @@ public abstract class Model {
 		try {
 			return mapper.writeValueAsString(this);
 		} catch (Exception e) {
-			Log.etl.log("model to string error: "+e.getMessage());
+			Log.log("model to string error: "+e.getMessage());
 			return super.toString();
 		}
 	}

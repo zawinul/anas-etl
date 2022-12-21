@@ -13,7 +13,7 @@ public abstract class Worker extends Thread {
 	public int index;
 	
 	public void log(String x) { 
-		Log.etl.log(tag+":"+x);
+		Log.log(tag+":"+x);
 	}
 	
 
@@ -30,7 +30,7 @@ public abstract class Worker extends Thread {
 			execute();
 		}
 		catch(Exception e) {
-			Log.etl.log("ERRORE CHE FA USCIRE DAL WORKER");
+			Log.log("ERRORE CHE FA USCIRE DAL WORKER");
 			e.printStackTrace();
 			workerStatus = e.getMessage();
 		}

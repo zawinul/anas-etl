@@ -2,21 +2,20 @@ package it.eng.anas.threads;
 
 import it.eng.anas.Log;
 import it.eng.anas.ScheduleHelper;
+import it.eng.anas.etl.AnasEtlWorker;
 
 public class ThreadManager {
 	public int NMAXTHREADS = 200;
 	public Worker threads[] = new Worker[NMAXTHREADS];
-	public WorkerFactory factory;
 	public int forcedNumberOfThreads = 0;
 	
 	public static ThreadManager mainThreadManager;
 	
-	public ThreadManager(WorkerFactory factory) {
-		this.factory = factory;
+	public ThreadManager() {
 	}
 	
 	public static void log(String x) { 
-		Log.etl.log(x);
+		Log.log(x);
 	}
 	
 	public void setNumberOfThreads(int n) {
@@ -29,7 +28,7 @@ public class ThreadManager {
 	public Worker create(int i) {
 		log("addOne");
 		String tag = (""+(1000+i)).substring(1);
-		final Worker wrk = factory.create("anas-etl", threads, "WRK-"+tag);
+		final Worker wrk = new AnasEtlWorker(tag);	
 		wrk.index = i;
 		wrk.cleanup.add( new Runnable() {
 			public void run() {

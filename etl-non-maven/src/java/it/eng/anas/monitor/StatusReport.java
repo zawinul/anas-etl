@@ -121,6 +121,6 @@ public class StatusReport {
 	
 
 	public static void main(String args[]) throws Exception {
-		Log.web.log(new StatusReport().getReport());
+		Log.log(new StatusReport().getReport());
 	}
 }

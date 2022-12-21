@@ -8,6 +8,8 @@ public class Config extends Model {
 //	public String contentQueue = "";
 
 	public String extractCondition = "1=1";
+
+	public String logConfigFile = "log4j.properties";
 	
 	public String outputBasePath = "";
 	public int webServerPort = 5150;
@@ -25,6 +27,7 @@ public class Config extends Model {
 	public String idLavori;
 	public String idArchivi;
 
+	public boolean directFilenetDbAccess = false;
 	
 	public static class FilenetConfig  extends Model {
 		public String userid = "";

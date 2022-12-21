@@ -34,6 +34,8 @@ public class FilenetDBConnectionFactory {
 	public static HashMap<Connection, String> map = new HashMap<Connection, String>();
 	
 	public Connection getConnection(String label) throws Exception {
+		if (!Utils.getConfig().directFilenetDbAccess)
+			throw new Exception("non è possibile accedere al db di filenet");
 		String driverClass = Utils.getConfig().filenetdb.driverclass;
 		Class.forName(driverClass);
 		Connection conn = DriverManager.getConnection(url, user, password);

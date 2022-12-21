@@ -84,7 +84,7 @@ public class ScheduleHelper {
 			tab.get(tab.size()-1).nthread = finalNThread;
 			
 			ObjectMapper m = Utils.getMapperOneLine();
-			Log.etl.log("sched_table="+m.writeValueAsString(tab));
+			Log.log("sched_table="+m.writeValueAsString(tab));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -96,7 +96,7 @@ public class ScheduleHelper {
 		buildTableFromConfig();
 		Event.addListener("config-change",new Runnable() {
 			public void run() {
-				Log.etl.log("rebuild of schedule table due to configuration change");
+				Log.log("rebuild of schedule table due to configuration change");
 				buildTableFromConfig();
 			}
 		});

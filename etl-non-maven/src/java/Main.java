@@ -3,16 +3,15 @@
 
 import it.eng.anas.Event;
 import it.eng.anas.Global;
+import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.monitor.WebServer;
 import it.eng.anas.threads.ThreadManager;
-import it.eng.anas.threads.WorkerFactory;
 
 public class Main {
 
 	public static  void log(String x) { System.out.println(x);}
 	static boolean terminated = false;
-	WorkerFactory factory;
 	ThreadManager manager;
 	
 	
@@ -31,8 +30,7 @@ public class Main {
 	}
 	
 	private void startJobs() {
-		factory = new WorkerFactory();
-		manager = new ThreadManager(factory);
+		manager = new ThreadManager();
 		ThreadManager.mainThreadManager = manager;
 		manager.setNumberOfThreads(1);		
 	}
@@ -40,7 +38,8 @@ public class Main {
 	private void startWeb() {
 		WebServer server = new WebServer();
 		server.start();
-		server.onKill = ()->terminated = true;		
+		server.onKill = ()->terminated = true;	
+		Log.log("Web started on port "+Utils.getConfig().webServerPort);
 	}
 	
 	public static void main(String args[]) throws Exception {

@@ -15,21 +15,20 @@ public class AnasEtlJobProcessor  {
 	public AnasEtlJobProcessor(AnasEtlWorker caller) {
 
 		this.caller = caller;
-		dispatcher.put("startScanArchivi", job->new JobProcessorArchivi(caller).startScanArchivi(job));
-		dispatcher.put("getArchiviFolder", job->new JobProcessorArchivi(caller).getArchiviFolder(job));
-		dispatcher.put("getArchiviDoc", job->new JobProcessorArchivi(caller).getArchiviDoc(job));
-		dispatcher.put("getArchiviContent", job->new JobProcessorArchivi(caller).getArchiviContent(job));
+//		dispatcher.put("startScanArchivi", job->new OLD2_JobProcessorArchivi(caller).startScanArchivi(job));
+//		dispatcher.put("getArchiviFolder", job->new OLD2_JobProcessorArchivi(caller).getArchiviFolder(job));
+//		dispatcher.put("getArchiviDoc", job->new OLD2_JobProcessorArchivi(caller).getArchiviDoc(job));
+//		dispatcher.put("getArchiviContent", job->new OLD2_JobProcessorArchivi(caller).getArchiviContent(job));
 
-		dispatcher.put("startScanArchivi2",  job->new JobProcessorArchiviExt2(caller).startScanArchivi2(job));
-		dispatcher.put("getArchiviNode",     job->new JobProcessorArchiviExt2(caller).getArchiviNode(job));
-		dispatcher.put("getArchiviContent2", job->new JobProcessorArchiviExt2(caller).getArchiviContent2(job));
-		
+		dispatcher.put("startScanArchivi2",  job->new JobProcessorArchivi(caller).startScanArchivi2(job));
+		dispatcher.put("getArchiviNode",     job->new JobProcessorArchivi(caller).getArchiviNode(job));
+		dispatcher.put("getArchiviContent2", job->new JobProcessorArchivi(caller).getArchiviContent2(job));
+		dispatcher.put("getArchiviNode2", job->new JobProcessorArchivi(caller).getArchiviNode2ByApi(job));
+		dispatcher.put("startArchiviNode", job->new JobProcessorArchivi(caller).startArchiviNode(job));
 		dispatcher.put("startScanDBS", job->new JobProcessorDBS(caller).startScanDBS_DB(job));
 		dispatcher.put("getDBSFolder", job->new JobProcessorDBS(caller).getDBSFolder_DB(job));
 		dispatcher.put("getDBSDoc", job->new JobProcessorDBS(caller).getDBSDoc_DB(job));
 		dispatcher.put("getDBSContent", job->new JobProcessorDBS(caller).getDBSContent(job));
-
-	
 	}
 	
 	

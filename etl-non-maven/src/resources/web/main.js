@@ -48,10 +48,15 @@ function updateWorker(worker) {
 	old[0].innerHTML = tr[0].innerHTML;
 }
 
+let lastData = null, lastDataTime=null;
 async function showReport() {
 	clearTimeout(reportTimeout);
+	let thisTime = new Date().getTime();
 	var txt = await $.get('../report').promise();
 	data = JSON.parse(txt);
+	if (lastData!=null)
+		computeDelta(data, lastData);
+
 	var tbody = $('.workers tbody');
 	tbody.empty();
 	for (var i = 0; i < data.workers.length; i++) {
@@ -63,44 +68,68 @@ async function showReport() {
 		row.attr('title', JSON.stringify(data.workers[i], null, 2));
 	}
 
-	// $('.db.count').empty();
-	// var nitems = "#job=" + data.job[0].count
-	// 	+ ", #done=" + data.done[0].count
-	// 	+ ", #error=" + data.error[0].count;
-
-	// $('<b style="margin-right:20px">elementi in tabella: </b>').appendTo('.db.count');
-	// $('<span class="n-items"/>').text(nitems).appendTo('.db.count');
-
 	$('.db.operation .cell').empty();
 	$('<b style="margin-right:20px">to do: '+data.job[0].count+'</b>').appendTo('.todo-operation');
 	$('<b style="margin-right:20px">done: '+data.done[0].count+'</b>').appendTo('.done-operation');
 	$('<b style="margin-right:20px">error: '+data.error[0].count+'</b>').appendTo('.error-operation');
+	function row2text(x) {
+		var ds = '';
+		if (x.delta) {
+			ds=' ('+(x.delta*60000/(thisTime-lastDataTime)).toFixed(1)+' min)';
+		}
+		return x.queue+" "+x.operation + ": " + x.count+ds;
+	}
 	data.operation
-		.map(x => x.queue+" "+x.operation + ": " + x.count)
+		.map(row2text)
 		.map(txt => $('<div/>').text(txt).appendTo('.todo-operation'));
 
 	data.done_operation
-		.map(x => x.queue+" "+x.operation + ": " + x.count)
+		.map(row2text)
 		.map(txt => $('<div/>').text(txt).appendTo('.done-operation'));
 
 	data.error_operation
-		.map(x => x.queue+" "+x.operation + ": " + x.count)
+		.map(row2text)
 		.map(txt => $('<div/>').text(txt).appendTo('.error-operation'));
 
-	$('<div class="outer"/>').appendTo('.db.operation .timer');
-	let inner = $('<div class="inner">&nbsp;</div>').appendTo('.db.operation .timer .outer');
-	let w = inner.width;
-	inner.css({width:w}).animate({width:0},reportIntervalTime+1000);
 	// $('<b style="margin-right:20px">by status: </b>').appendTo('.db.status');
 	// data.status
 	// 	.map(x => x.queue + ':' + x.locktag + ": " + x.count)
 	// 	.map(txt => $('<div/>').text(txt).appendTo('.db.status'));
 
+	let ref = $('button.refresh');
+	ref.clearQueue().animate({
+			borderWidth: 1
+		}, {
+		duration:reportIntervalTime+1000,
+		easing: 'linear',
+		progress:function(animation, prog, remaining) {
+			let pc=100-prog*100;
+			ref.css('background', `linear-gradient(90deg, rgba(198,198,198,1) 0%, rgba(220,220,220,1) ${pc}%, rgba(240,240,240,1) ${pc}%)`)
+		}
+	});
 	$('.connections').empty();
 	$('<b style="margin-right:20px">connessioni DB: </b>').appendTo('.connections');
 
 	data.connections.map(txt => $('<div/>').text(txt).appendTo('.connections'));
+	lastData = data;
+	lastDataTime = thisTime;
 	reportTimeout = setTimeout(showReport, reportIntervalTime);
+}
+
+function computeDelta(data, data2) {
+	function cd(arr1,arr2) {
+		for(a of arr1) {
+			for(b of arr2) {
+				if (a.queue==b.queue && a.operation==b.operation)
+					a.delta = a.count-b.count;
+			}
+		}
+	}
+	cd(data.operation, data2.operation);
+	cd(data.done_operation, data2.done_operation);
+	cd(data.error_operation, data2.error_operation);
+	data.operation.map(x => x.queue+" "+x.operation + ": " + x.count)
+
 }
 
 function exit() {
@@ -220,6 +249,37 @@ function startScanArchivi2() {
 		error => alert(error)
 	);
 }
+
+
+function startScanArchiviNode() {
+	var withcontent = confirm("with content");
+	var path = prompt("path", "AN.8");
+	if (!path)
+		return;
+	var priority = prompt("priority", "0");
+	if (priority===null || priority===undefined)
+		return;
+	var dir = path.substring(0, path.lastIndexOf("."));
+	let job = {
+		queue:'qdata',
+		operation: 'startArchiviNode',
+		priority:priority-0,
+		dir,
+		withcontent,
+		path,
+		buildDir: false
+	};
+
+	var msg = JSON.stringify(job, null, 4);
+	if (!confirm(msg))
+		return;
+
+	$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
+		error => alert(error)
+	);
+}
+
 
 function startScanProgetti() { startScanDBS('progetti'); }
 function startScanLavori() { startScanDBS('lavori'); }
