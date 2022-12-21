@@ -41,7 +41,6 @@ public class AnasEtlWorker extends DBConsumeWorker<AnasEtlJob>  {
 
 	@Override
 	public void onJob(AnasEtlJob job) throws Exception {
-		log("AnasEtlJob onMessage "+job.id);
 		if (Utils.getConfig().simulazioneErrori)
 			if (Math.random()<.01) // fallisce l'1% delle operazioni
 				throw new Exception("simulazione errore");

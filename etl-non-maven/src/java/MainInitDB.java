@@ -41,8 +41,6 @@ public class MainInitDB {
 		for(String table:tablesToCreate) 
 			exec(sql.replace("tablename", table), con);
 		
-		exec(readSql("create-sequence"), con);
-		exec(readSql("init-sequence"), con);
 		DBConnectionFactory.close(con);
 		Event.emit("exit");
 	}

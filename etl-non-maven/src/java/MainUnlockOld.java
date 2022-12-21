@@ -1,15 +1,11 @@
 
 
-import java.io.InputStream;
 import java.sql.Connection;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.commons.io.IOUtils;
-
 import it.eng.anas.Event;
 import it.eng.anas.Global;
-import it.eng.anas.UTF8;
 import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.SimpleDbOp;
 

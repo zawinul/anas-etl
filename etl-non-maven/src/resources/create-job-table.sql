@@ -1,5 +1,5 @@
 CREATE TABLE tablename (
-	jobid int(10) not NULL,
+	jobid varchar(10) not NULL,
 	priority int(10),
 	nretry int(10),
 	locktag varchar(6),
@@ -11,7 +11,7 @@ CREATE TABLE tablename (
 	creation varchar(20),
 	last_change varchar(20),
 
-	parent_job int(10),
+	parent_job varchar(10),
 	duration   int(10),
 
 	body varchar(2000),

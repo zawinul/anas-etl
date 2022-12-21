@@ -10,7 +10,7 @@ webSocket.onmessage = function (msg) {
 		console.log(obj); 
 	
 };
-webSocket.onclose = function () { alert("WebSocket connection closed") };
+webSocket.onclose = function () { console.log("WebSocket connection closed") };
 
 function init() {
 	console.log('started v4');

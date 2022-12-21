@@ -85,9 +85,7 @@ public class DbJobManager<T extends DBJob>  {
 	
 
 	public synchronized T ack(T job, String out)  throws Exception {
-//		if (Global.debug)
-//			return job;
-		
+
 		return transactionManager.execute(new Callable<T>() {
 			public synchronized T call() throws Exception {
 				return _ack(job, out);
@@ -96,9 +94,6 @@ public class DbJobManager<T extends DBJob>  {
 	}
 
 	public synchronized T nack(T job, String out)  throws Exception {
-//		if (Global.debug)
-//			return job;
-
 		return transactionManager.execute(new Callable<T>() {
 			public synchronized T call() throws Exception {
 				return _nack(job, out);
@@ -107,7 +102,7 @@ public class DbJobManager<T extends DBJob>  {
 	}
 	
 	private T _insertNew(T job)  throws Exception {
-		job.id = getNextId();
+		job.id = Utils.rndString(10);
 		job.creation = job.last_change = Utils.date2String(new Date());
 		
 		String time = Utils.date2String(new Date());
@@ -131,7 +126,7 @@ public class DbJobManager<T extends DBJob>  {
 		
 		new SimpleDbOp(connection)
 			.query(insertSql)
-			.setInt(1, job.id)
+			.setString(1, job.id)
 			.setInt(2, job.priority)
 			.setString(3, job.locktag)
 			.setInt(4, job.nretry)
@@ -142,7 +137,7 @@ public class DbJobManager<T extends DBJob>  {
 			.setString(9, job.key3)
 			.setString(10, job.creation)
 			.setString(11, job.last_change)
-			.setInt(12, job.parent_job)
+			.setString(12, job.parent_job)
 			.setInt(13, job.duration)
 			.setString(14, mapper.writeValueAsString(job))
 			.setString(15, limit(job.output, 500))
@@ -155,11 +150,12 @@ public class DbJobManager<T extends DBJob>  {
 		" UPDATE job SET locktag=?, last_change=? WHERE jobid= ( "+
 		"   (SELECT jobid                                        "+
 		"     FROM (select * from job as job2 ) as j2            "+
-		"     WHERE locktag is null AND extractCondition         "+
-		"     ORDER BY priority desc,nretry,key1,key2,key3,jobid "+
+		"     WHERE locktag is null AND ( extractCondition )     "+
+		"     ORDER BY priority desc,nretry                      "+
 		"     LIMIT 1                                            "+
 		"   )                                                    "+
 		" )                                                      ";
+	// la doppia select è necessaria, vedi https://stackoverflow.com/questions/44970574/table-is-specified-twice-both-as-a-target-for-update-and-as-a-separate-source
 	
 	private T _extract2()  throws Exception {
 		String extractCondition = Utils.getConfig().extractCondition;
@@ -217,7 +213,7 @@ public class DbJobManager<T extends DBJob>  {
 		String sql = "delete from job where jobid=?";
 		new SimpleDbOp(connection)
 			.query(sql)
-			.setInt(1, job.id)
+			.setString(1, job.id)
 			.execute().close().throwOnError();
 		return job;
 	}
@@ -235,7 +231,7 @@ public class DbJobManager<T extends DBJob>  {
 				.setString(1, job.last_change)
 				.setInt(2, job.nretry)
 				.setString(3, limit(job.output, 500))
-				.setInt(4, job.id)
+				.setString(4, job.id)
 				.executeUpdate()
 				.close()
 				.throwOnError();
@@ -246,7 +242,7 @@ public class DbJobManager<T extends DBJob>  {
 			String sql = "delete from job where jobid=?";
 			new SimpleDbOp(connection)
 				.query(sql)
-				.setInt(1, job.id)
+				.setString(1, job.id)
 				.execute().close().throwOnError();
 		}
 		return job;
@@ -299,42 +295,35 @@ public class DbJobManager<T extends DBJob>  {
 			return x;
 	}
 
-	private int getNextId() throws Exception {
-		new SimpleDbOp(connection)
-			.query("LOCK TABLES jobid_sequence WRITE")
-			.execute()
-			.close()
-			.throwOnError();
-		
-		SimpleDbOp sel = new SimpleDbOp(connection)
-			.query("select id from jobid_sequence")
-			.executeQuery();
-		
-		sel.next();
-		int id = sel.getInt("id");
-		sel.close();
-		
-		new SimpleDbOp(connection)
-			.query("update jobid_sequence set id=?")
-			.setInt(1, id+1)
-			.executeUpdate()
-			.close();
-		
-		new SimpleDbOp(connection)
-			.query("UNLOCK TABLES ")
-			.execute()
-			.close()
-			.throwOnError();
-			
-		
-		return id;
-	}
+//	private int getNextId() throws Exception {
+//		new SimpleDbOp(connection)
+//			.query("LOCK TABLES jobid_sequence WRITE")
+//			.execute()
+//			.close()
+//			.throwOnError();
+//		
+//		SimpleDbOp sel = new SimpleDbOp(connection)
+//			.query("select id from jobid_sequence")
+//			.executeQuery();
+//		
+//		sel.next();
+//		int id = sel.getInt("id");
+//		sel.close();
+//		
+//		new SimpleDbOp(connection)
+//			.query("update jobid_sequence set id=?")
+//			.setInt(1, id+1)
+//			.executeUpdate()
+//			.close();
+//		
+//		new SimpleDbOp(connection)
+//			.query("UNLOCK TABLES ")
+//			.execute()
+//			.close()
+//			.throwOnError();
+//			
+//		
+//		return id;
+//	}
 	
-	public static void main(String args[]) throws Exception {
-		DbJobManager<AnasEtlJob> manager = new DbJobManager<AnasEtlJob>("prova", AnasEtlJob.class);
-		for(int i=0; i<10; i++) {
-			int id = manager.getNextId();
-			System.out.println(id);
-		}
-	}
 }
