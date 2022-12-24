@@ -69,7 +69,7 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 			return;
 		}
 
-		log("onMessage "+job.operation);
+		//log("onMessage "+job.operation);
 		
 		try {
 			workerStatus = "on job "+job.id;

@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -200,7 +201,7 @@ public class JobProcessorArchivi {
 		if (nchild==0 && !hasContent)  // foglia
 			savefile = job.dir+"/"+job.path;
 		else 
-			savefile = nextdir+"/"+job.path+" root";
+			savefile = nextdir+"/"+job.path;
 		
 		fileh.saveJsonObject("archivi2/"+savefile+".json", node);
 		
@@ -396,7 +397,7 @@ public class JobProcessorArchivi {
 		if (nchild==0 && !hasContent)  // foglia
 			savefile = job.dir+"/"+job.path;
 		else 
-			savefile = nextdir+"/"+job.path+" root";
+			savefile = nextdir+"/"+job.path;
 		
 		fileh.saveJsonObject("archivi2/"+savefile+".json", node);
 		
@@ -466,7 +467,7 @@ public class JobProcessorArchivi {
 		if (nchild==0 && !hasContent)  // foglia
 			savefile = job.dir+"/"+job.path;
 		else 
-			savefile = nextdir+"/"+job.path+" root";
+			savefile = nextdir+"/"+job.path;
 		
 		fileh.saveJsonObject("archivi2/"+savefile+".json", node);
 		
@@ -574,13 +575,69 @@ public class JobProcessorArchivi {
 		return id;
 	}
 	
+	public static class ArchChild {
+		public String id;
+		public String path;
+		public String titolo;
+		public int numero;
+	}
+	
+	public List<ArchChild> getArchChild(String path) throws Exception {
+		String id = findNodeId(path);
+		if (id==null)
+			return null;
 
+		List<ArchChild> ret = new ArrayList<>();
+		SearchSQL sql = new SearchSQL();
+		sql.setMaxRecords(10000);
+		sql.setSelectList("d.Id,d.codiceIdentificativoArchivio,d.numero,d.titolo");
+		sql.setFromClauseInitialValue("AsdElementoArchivistico", "d", true);
+		String whereClause = "d.elementoArchivisticoParentRef="+id;
+		sql.setWhereClause(whereClause);
+
+		FilenetHelper fnet = caller.getFilenetHelper();
+		ObjectStore os = fnet.getOS("PDMASD");
+		SearchScope searchScope = new SearchScope(os);
+		RepositoryRowSet rowSet = searchScope.fetchRows(sql, 10000, null, true);
+		Iterator iter = rowSet.iterator();		
+		while(iter.hasNext()) {
+			RepositoryRow row = (RepositoryRow) iter.next();
+			ArchChild c = new ArchChild();
+			c.id = row.getProperties().getIdValue("Id").toString();
+			c.numero = row.getProperties().getInteger32Value("numero");;
+			c.path = path+"."+c.numero;
+			c.titolo = row.getProperties().getStringValue("titolo").trim().toLowerCase();
+			ret.add(c);
+		}	
+		return ret;
+	}
+	
 	
 	public static void main(String args[]) throws Exception {
+		//final String PATH = "BA.3";
 		AnasEtlWorker worker = new AnasEtlWorker("test");
 		JobProcessorArchivi proc = new JobProcessorArchivi(worker);
-		//proc.startScanArchiviByAPI(null);
-		String id = proc.findNodeId("AN.8");
+		Scanner sc = new Scanner(System.in);
+		while(true) {
+			System.out.println("path ? ");
+			String line = sc.nextLine();
+			System.out.println("line=["+line+"]");
+			line = line.trim();
+			if (line.equals("exit"))
+				break;
+			List<ArchChild> children = proc.getArchChild(line);
+			int i=0;
+			
+			children.sort(new Comparator<ArchChild>() {
+				public int compare(ArchChild o1, ArchChild o2) {
+					return o1.numero-o2.numero;
+				}
+			});
+			for(ArchChild child: children) {
+				System.out.format("%3d) %16s %s %s\n", i++, child.path, child.id, child.titolo);
+			}
+		}
+		System.out.println("exiting");
 		Event.emit("exit");
 		Log.log("done!");
 	}

@@ -5,6 +5,7 @@ import it.eng.anas.Event;
 import it.eng.anas.Global;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
+import it.eng.anas.etl.Background;
 import it.eng.anas.monitor.WebServer;
 import it.eng.anas.threads.ThreadManager;
 
@@ -23,10 +24,12 @@ public class Main {
 				terminated = true;
 			}
 		});
+		Background.start();
 		while(!terminated)
 			Utils.longPause();
 		spark.Spark.stop();
 		manager.killAll(true);
+		Background.join();
 	}
 	
 	private void startJobs() {

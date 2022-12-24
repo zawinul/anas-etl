@@ -26,7 +26,6 @@ public class MainResetDB {
 		for(String table: tablesToTruncate) 
 			exec("TRUNCATE TABLE  "+table, con);
 		
-		exec("update jobid_sequence set id=0", con);
 		
 		DBConnectionFactory.close(con);
 		Event.emit("exit");

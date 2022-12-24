@@ -17,6 +17,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import it.eng.anas.model.Config;
 
 public class Utils {
+	private static boolean exiting = false;
+
 	public static String rndString(int len) {
 		char l[]=new char[len];
 		for(int i=0; i<len;i++) 
@@ -127,7 +129,7 @@ public class Utils {
 		return (cfg!=null) ? cfg : refreshConfig();
 	}
 	
-	private static Config refreshConfig()  {
+	public static Config refreshConfig()  {
 		try {
 			FileReader r = new FileReader(Global.configFile);
 			String json = IOUtils.toString(r);
@@ -148,8 +150,6 @@ public class Utils {
 		return cfg;
 	}
 	
-	private static Thread refreshConfigThread;
-	private static boolean exiting = false;
 	
 	static {
 		Event.addListener("exit", new Runnable() {
@@ -157,14 +157,5 @@ public class Utils {
 				exiting=true;
 			}
 		});
-		refreshConfigThread = new Thread() {
-			public void run() {
-				while(!exiting) {
-					Utils.sleep(30000);
-					refreshConfig();
-				}
-			}
-		};
-		refreshConfigThread.start();
 	}
 }

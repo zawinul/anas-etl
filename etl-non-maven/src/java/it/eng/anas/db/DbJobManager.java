@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.etl.AnasEtlJob;
 import it.eng.anas.model.DBJob;
@@ -101,6 +102,8 @@ public class DbJobManager<T extends DBJob>  {
 		});
 	}
 	
+
+
 	private T _insertNew(T job)  throws Exception {
 		job.id = Utils.rndString(10);
 		job.creation = job.last_change = Utils.date2String(new Date());
@@ -208,17 +211,18 @@ public class DbJobManager<T extends DBJob>  {
 	private T _ack(T job, String out)  throws Exception  {
 		job.output = out;
 		updateTiming(job);
-		insert(job, "job_done");
-		
-		String sql = "delete from job where jobid=?";
+		//insert(job, "job_done");
+		String sql = "update job set locktag=?, output=?, last_change=?, duration=?  where jobid=?";
 		new SimpleDbOp(connection)
 			.query(sql)
-			.setString(1, job.id)
-			.execute().close().throwOnError();
+			.setString(1, "ack")
+			.setString(2, job.output)
+			.setString(3, job.last_change)
+			.setInt(4, job.duration)
+			.setString(5, job.id)
+			.executeUpdate().close().throwOnError();
 		return job;
 	}
-
-	
 	private T _nack(T job, String out)  throws Exception {
 		job.output = out;
 		updateTiming(job);
@@ -227,49 +231,31 @@ public class DbJobManager<T extends DBJob>  {
 		if (job.nretry<Utils.getConfig().nMaxRetry) {
 			// reinoltro in coda togliendo il lock e incrementando il n.retry
 			new SimpleDbOp(connection)
-				.query("UPDATE job SET locktag=null, last_change=?, nretry=?, output=? WHERE jobid=?")
+				.query("UPDATE job SET locktag=null, last_change=?, nretry=?, body=?, output=? WHERE jobid=?")
 				.setString(1, job.last_change)
 				.setInt(2, job.nretry)
-				.setString(3, limit(job.output, 500))
-				.setString(4, job.id)
+				.setString(3, limit(mapper.writeValueAsString(job), 2000))
+				.setString(4, limit(job.output, 500))
+				.setString(5, job.id)
 				.executeUpdate()
 				.close()
 				.throwOnError();
 		}
 		else {
-			// move to job_error
-			insert(job, "job_error");
-			String sql = "delete from job where jobid=?";
+			
+			String sql = "update job set locktag=?, output=?, last_change=?, duration=?  where jobid=?";
 			new SimpleDbOp(connection)
 				.query(sql)
-				.setString(1, job.id)
-				.execute().close().throwOnError();
+				.setString(1, "nack")
+				.setString(2, limit(job.output, 500))
+				.setString(3, job.last_change)
+				.setInt(4, job.duration)
+				.setString(5, job.id)
+				.executeUpdate().close().throwOnError();
+			return job;
 		}
 		return job;
 	}
-	
-//	public DBJob fromDB(SimpleDbOp op) {
-//		if (!op.next())
-//			return null;
-//		final DBJob ret = new DBJob();
-//		ret.id = op.getInt("jobid");
-//		ret.priority = op.getInt("priority");
-//		ret.nretry = op.getInt("nretry");
-//		ret.locktag= op.getString("locktag");;
-//		ret.queue = op.getString("queue");
-//		ret.operation = op.getString("operation");
-//		ret.key1 = op.getString("key1");
-//		ret.key2 = op.getString("key2");
-//		ret.key3 = op.getString("key3");
-//		ret.creation = op.getString("creation");
-//		ret.last_change = op.getString("last_change");
-//		
-//		ret.parent_job = op.isNull("parent_job") ? null : op.getInt("parent_job");
-//		ret.body = op.getString("body");
-//		ret.output = op.getString("output");
-//		
-//		return ret;
-//	} 
 	
 
 	private void updateTiming(T job) {

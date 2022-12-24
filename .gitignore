@@ -2,6 +2,7 @@
 runnable.jar
 JavaCEWSClient/*
 execute/*
+log/*
 
 .metadata
 *.iml

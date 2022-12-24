@@ -1,9 +1,15 @@
 package it.eng.anas.monitor;
 
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URLConnection;
 import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -40,10 +46,17 @@ public class WebServer {
 		int port = c.webServerPort;
 
 		if (c.websocketEnabled)
-			spark.Spark.webSocket("/monitor", EchoWebSocket.class);
+			spark.Spark.webSocket("/monitor", EtlMonitorWebSocket.class);
 		
 		spark.Spark.port(port);
 		spark.Spark.staticFileLocation("/web");
+		spark.Spark.before((request, response) -> {
+	        response.header("Access-Control-Allow-Origin", request.headers("Origin"));
+	        //response.header("Access-Control-Request-Method", methods);
+	        //response.header("Access-Control-Allow-Headers", headers);
+	        // Note: this may or may not be necessary in your particular application
+	        //response.type("application/json");
+	    });
 		spark.Spark.get("/hello", (req, res) -> {
 			Log.log(req.url().toString());
 			
@@ -103,6 +116,23 @@ public class WebServer {
 			return "ok";
 		});
 
+		spark.Spark.get("/getdir", (req, res) -> {
+			String path = req.queryParams("path");
+			if (path==null)
+				path="/";
+			String ret[][] = getDir(path);
+			return Utils.getMapper().writeValueAsString(ret);
+		});
+
+		spark.Spark.get("/getfile", (req, res) -> {
+			String path = req.queryParams("path");
+			if (path==null)
+				path="/";
+			File f = getFile(path);
+			String mimeType = URLConnection.guessContentTypeFromName(f.getName());
+			res.header("Content-Type", mimeType);
+			return new FileInputStream(f);
+		});
 
 		spark.Spark.post("/sql", (req, res) -> {
 			try {
@@ -144,7 +174,7 @@ public class WebServer {
     public  static final Queue<Session> sessions = new ConcurrentLinkedQueue<>();
 	
     @WebSocket
-	public static class EchoWebSocket {
+	public static class EtlMonitorWebSocket {
 
 
 	    @OnWebSocketConnect
@@ -164,6 +194,35 @@ public class WebServer {
 	    }
 	}
     
+    private String [][] getDir(String path) throws Exception {
+    	List<String> f = new ArrayList<>();
+    	List<String> d = new ArrayList<>();
+    	String base = Utils.getConfig().outputBasePath;
+    	File baseFile = new File(base);
+    	File dir = new File(base, path);
+    	if (!dir.exists() || !dir.isDirectory())
+    		throw new Exception ("dir "+dir.getAbsolutePath()+" does not exist");
+    	File files[] = dir.listFiles(); 
+    	for(File el: files) {
+    		if (el.exists() && el.isDirectory())
+    			d.add(el.getName());
+    		if (el.exists() && !el.isDirectory())
+    			f.add(el.getName());
+    	}
+    	String darr[] = d.toArray(new String[0]);
+    	String farr[] = f.toArray(new String[0]);
+    	String [][] ret = {darr, farr};
+    	return ret;
+    }
+
+    private File getFile(String path) throws Exception {
+    	String base = Utils.getConfig().outputBasePath;
+    	File baseFile = new File(base);
+    	File ret = new File(base, path);
+    	if (!ret.exists() || !ret.isFile())
+    		throw new Exception("file "+path+" does not exists");
+    	return ret;
+    }
     private static ObjectMapper webSocketMapper = Utils.getMapper();
     static {
     	webSocketMapper = Utils.getMapper();
@@ -188,4 +247,12 @@ public class WebServer {
     	}
     }
 	
+    public static void main(String args[]) throws Exception {
+    	WebServer w = new WebServer();
+    	String d[][] = w.getDir("/");
+    	HashMap<String, Object> k = new HashMap<>();
+    	k.put("directories", d[0]);
+    	k.put("files", d[1]);
+    	System.out.println(Utils.getMapper().writeValueAsString(k));
+    }
 }

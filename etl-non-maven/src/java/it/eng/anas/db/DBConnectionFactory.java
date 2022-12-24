@@ -4,12 +4,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.HashMap;
 
+import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.model.Config;
 
 public class DBConnectionFactory {
 	public static int nopen=0;
-	
+	public static int nerrors=0;
 	public DBConnectionFactory(String url, String user, String password) {
 		this.url = url;
 		this.user = user;
@@ -37,7 +38,7 @@ public class DBConnectionFactory {
 		Connection conn = DriverManager.getConnection(url, user, password);
 		map.put(conn, label);
 		nopen++;
-		//Log.etl.log("CONNESSIONI APERTE: "+nopen);
+		Log.log("+ CONNESSIONI APERTE: "+nopen);
 		return conn;
 	}
 	
@@ -60,11 +61,13 @@ public class DBConnectionFactory {
 			c.close();
 		}
 		catch(Exception e) {
-			e.printStackTrace();
+			nerrors++;
+			Log.log("+ERRORE CHIUSURA CONNESSIONE "+nerrors);
+			Log.log(e);
 		}
 		finally {
 			nopen--;
-			//Log.etl.log("CONNESSIONI APERTE: "+nopen);
+			Log.log("-CONNESSIONI APERTE: "+nopen);
 			//showMap();
 		}
 	}
