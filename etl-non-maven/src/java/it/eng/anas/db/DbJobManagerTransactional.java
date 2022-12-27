@@ -5,61 +5,101 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.concurrent.Callable;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.etl.AnasEtlJob;
 import it.eng.anas.model.DBJob;
 
-public class DbJobManager<T extends DBJob>  {
+public class DbJobManagerTransactional<T extends DBJob>  {
 	private Connection connection;
+	private DBTransactionManager transactionManager;
 	public String tag;
 	private ObjectMapper mapper = Utils.getMapperOneLine();
 	private Class<T> tclass; 
 	
-	public DbJobManager() {
+	public DbJobManagerTransactional() {
 		this(Utils.rndString(5), null);
 	}
 	
-	public DbJobManager(String tag, Class<T> tclass) {
+	public DbJobManagerTransactional(String tag, Class<T> tclass) {
 		this.tclass = tclass;
 		this.tag = tag;
 		try {
 			Connection c = DBConnectionFactory.defaultFactory.getConnection("dbJobManager "+tag);
 			this.connection = c;
+			c.setAutoCommit(false);
+			transactionManager = new DBTransactionManager(c);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 	
-    public DbJobManager(Connection connection) {
+    public DbJobManagerTransactional(Connection connection) {
 		super();
 		this.connection = connection;
-	}
-
-
-	public /* synchronized */ T  insertNew(T job)  throws Exception {
-		return _insertNew(job);
-	}
-
-
-	public final static Object extractLock ="";
-	public  T extract()  throws Exception {
-		synchronized(extractLock) {
-			return _extract3();
+		try {
+			connection.setAutoCommit(false);
+			transactionManager = new DBTransactionManager(connection);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
+	}
+
+
+//	public  DBJob insertNew(String queue, int priority,  
+//			String operation, String key1, String key2, String key3, int parentJob, String body)  throws Exception {
+//		String time = Utils.date2String(new Date());
+//		DBJob job = new DBJob(
+//			-1, //id
+//			null, // lock
+//			priority,
+//			0, // n retry
+//			queue, 
+//			operation,
+//			key1, key2, key3, 
+//			time, time, 
+//			parentJob,
+//			0, // duration
+//			body
+//		);		
+//		return insertNew(job);
+//	}
+
+	public synchronized T insertNew(T job)  throws Exception {
+		return transactionManager.execute(new Callable<T>() {
+			public T call() throws Exception {
+				return _insertNew(job);
+			}
+		});
+	}
+
+
+	public /*synchronized */ T extract()  throws Exception {
+		return transactionManager.execute(new Callable<T>() {
+			public synchronized T call() throws Exception {
+				return _extract2();
+			}
+		});
 	}
 	
 
 	public synchronized T ack(T job, String out)  throws Exception {
-		return _ack(job, out);
+
+		return transactionManager.execute(new Callable<T>() {
+			public synchronized T call() throws Exception {
+				return _ack(job, out);
+			}
+		});
 	}
 
 	public synchronized T nack(T job, String out)  throws Exception {
-		return _nack(job, out);
+		return transactionManager.execute(new Callable<T>() {
+			public synchronized T call() throws Exception {
+				return _nack(job, out);
+			}
+		});
 	}
 	
 
@@ -86,9 +126,6 @@ public class DbJobManager<T extends DBJob>  {
 				+ " (jobid,priority,locktag,nretry,queue,operation,key1,key2,key3,creation,last_change,parent_job,duration,body,output) "
 				+ " values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		
-		ObjectNode  clone = mapper.valueToTree(job);
-		clone.remove("body");
-		clone.remove("output");
 		
 		new SimpleDbOp(connection)
 			.query(insertSql)
@@ -105,132 +142,73 @@ public class DbJobManager<T extends DBJob>  {
 			.setString(11, job.last_change)
 			.setString(12, job.parent_job)
 			.setInt(13, job.duration)
-			.setString(14, mapper.writeValueAsString(clone))
+			.setString(14, mapper.writeValueAsString(job))
 			.setString(15, limit(job.output, 500))
 			.execute()
 			.close()
 			.throwOnError();		
 	}
-
 	
-//	private static final String getLockSql = 
-//		" UPDATE job SET locktag=?, last_change=? WHERE jobid= ( "+
-//		"   (SELECT jobid                                        "+
-//		"     FROM (select * from job as job2 ) as j2            "+
-//		"     WHERE locktag is null AND ( extractCondition )     "+
-//		"     ORDER BY priority desc,nretry                      "+
-//		"     LIMIT 1                                            "+
-//		"   )                                                    "+
-//		" )                                                      ";
-//	// la doppia select è necessaria, vedi https://stackoverflow.com/questions/44970574/table-is-specified-twice-both-as-a-target-for-update-and-as-a-separate-source
-//	
-//	private T _extract2()  throws Exception {
-//		String extractCondition = Utils.getConfig().extractCondition;
-//		if (extractCondition==null)
-//			extractCondition="1=1";
-//		String query = getLockSql.replace("extractCondition", extractCondition);
-//		String lcktag = Utils.rndString(6);
-//		String now = Utils.date2String(new Date());
-//		SimpleDbOp op1 = new SimpleDbOp(connection)
-//				.query(query)
-//				.setString(1, lcktag)
-//				.setString(2, now)
-//				.executeUpdate()
-//				.close()
-//				.throwOnError();
-//		
-//		int n = op1.getNumOfExecutedUpdate();
-//		if (n<=0) {
-//			//Log.db.log("coda vuota");
-//			return null;
-//		}
-//		
-//		String sqlget = "select body, priority from job where locktag=?";
-//		SimpleDbOp op2 = new SimpleDbOp(connection)
-//				.query(sqlget)
-//				.setString(1, lcktag)
-//				.executeQuery()
-//				.throwOnError();
-//		if (!op2.next())
-//			throw new RuntimeException("non dovrebbe mai accadere: lcktag="+lcktag);
-//		String jsonBody = op2.getString("body");
-//		
-//		// la priority potrebbe essere stata cambiata da sql
-//		// aggiorniamo il body
-//		int priority = op2.getInt("priority");
-//		
-//		op2.close();
-//		
-//		T ret = mapper.readValue(jsonBody, tclass);
-//		ret.priority = priority;
-//		return ret;
-//	}
-
-	private T _extract3()  throws Exception {
+	private static final String getLockSql = 
+		" UPDATE job SET locktag=?, last_change=? WHERE jobid= ( "+
+		"   (SELECT jobid                                        "+
+		"     FROM (select * from job as job2 ) as j2            "+
+		"     WHERE locktag is null AND ( extractCondition )     "+
+		"     ORDER BY priority desc,nretry                      "+
+		"     LIMIT 1                                            "+
+		"   )                                                    "+
+		" )                                                      ";
+	// la doppia select è necessaria, vedi https://stackoverflow.com/questions/44970574/table-is-specified-twice-both-as-a-target-for-update-and-as-a-separate-source
+	
+	private T _extract2()  throws Exception {
 		String extractCondition = Utils.getConfig().extractCondition;
 		if (extractCondition==null)
 			extractCondition="1=1";
-		String sqlget = "select jobid,  body, priority from job "
-				+ "WHERE locktag is null AND ("+extractCondition+") "
-				+ "ORDER BY priority desc,nretry LIMIT 1";
-
-		SimpleDbOp op2 = new SimpleDbOp(connection)
-				.query(sqlget)
-				.executeQuery()
-				.throwOnError();
-		if (!op2.next()) {
-			op2.close();
-			return null;
-		}
-		String id = op2.getString("jobid");
-		String jsonBody = op2.getString("body");		
-		int priority = op2.getInt("priority");
-		op2.close();
-		
-		Log.log(jsonBody);
-		T ret = null;
-		try {
-			ret = mapper.readValue(jsonBody, tclass);
-		}catch(Exception e) {
-			e.printStackTrace();
-			Log.log(e);
-			new SimpleDbOp(connection)
-				.query("update job set locktag='nack' where jobid=?")
-				.setString(1,  id)
-				.executeUpdate()
-				.throwOnError();
-			return null;
-		}
-		// la priority potrebbe essere stata cambiata da sql
-		// aggiorniamo il body
-		ret.priority = priority;
-
+		String query = getLockSql.replace("extractCondition", extractCondition);
 		String lcktag = Utils.rndString(6);
 		String now = Utils.date2String(new Date());
+		SimpleDbOp op1 = new SimpleDbOp(connection)
+				.query(query)
+				.setString(1, lcktag)
+				.setString(2, now)
+				.executeUpdate()
+				.close()
+				.throwOnError();
 		
-		String upd="update job set locktag=?,last_change=? where jobid=?";
-		new SimpleDbOp(connection)
-			.query(upd)
-			.setString(1, lcktag)
-			.setString(2, now)
-			.setString(3, id)
-			.executeUpdate()
-			.close()
-			.throwOnError();
+		try {
+			connection.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
+		int n = op1.getNumOfExecutedUpdate();
+		if (n<=0) {
+			//Log.db.log("coda vuota");
+			return null;
+		}
+		
+		String sqlget = "select body, priority from job where locktag=?";
+		SimpleDbOp op2 = new SimpleDbOp(connection)
+				.query(sqlget)
+				.setString(1, lcktag)
+				.executeQuery()
+				.throwOnError();
+		if (!op2.next())
+			throw new RuntimeException("non dovrebbe mai accadere: lcktag="+lcktag);
+		String jsonBody = op2.getString("body");
+		
+		// la priority potrebbe essere stata cambiata da sql
+		// aggiorniamo il body
+		int priority = op2.getInt("priority");
+		
+		op2.close();
+		
+		T ret = mapper.readValue(jsonBody, tclass);
+		ret.priority = priority;
 		return ret;
 	}
 
-
 	private T _ack(T job, String out)  throws Exception  {
-		if (!Utils.getConfig().saveJobDone) {
-			String sql = "delete from job where jobid=?";
-			new SimpleDbOp(connection)
-				.query(sql)
-				.setString(1, job.id)
-				.execute().close().throwOnError();
-			return job;
-		}
 		job.output = out;
 		updateTiming(job);
 		//insert(job, "job_done");
@@ -252,14 +230,12 @@ public class DbJobManager<T extends DBJob>  {
 		job.last_change = Utils.date2String(new Date());
 		if (job.nretry<Utils.getConfig().nMaxRetry) {
 			// reinoltro in coda togliendo il lock e incrementando il n.retry
-			String output = job.output;
-			job.output = null;
 			new SimpleDbOp(connection)
 				.query("UPDATE job SET locktag=null, last_change=?, nretry=?, body=?, output=? WHERE jobid=?")
 				.setString(1, job.last_change)
 				.setInt(2, job.nretry)
 				.setString(3, limit(mapper.writeValueAsString(job), 2000))
-				.setString(4, output)
+				.setString(4, limit(job.output, 500))
 				.setString(5, job.id)
 				.executeUpdate()
 				.close()

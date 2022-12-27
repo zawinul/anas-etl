@@ -7,15 +7,17 @@ public class Config extends Model {
 //	public String metadataQueue = "";
 //	public String contentQueue = "";
 
+	public DbConfig db = new DbConfig();
 	public String extractCondition = "1=1";
-
+	public boolean transactionNeeded = false;
+	public boolean saveJobDone = false;
+	
 	public String logConfigFile = "log4j.properties";
 	
 	public String outputBasePath = "";
 	public int webServerPort = 5150;
 	public FilenetConfig filenet = new FilenetConfig();
 	public FilenetDBConfig filenetdb = new FilenetDBConfig();
-	public DbConfig db = new DbConfig();
 	public int shortPause[] = {100, 200};
 	public int longPause[] = {10000, 30000};
 	public int nMaxRetry = 10;

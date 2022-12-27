@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -27,6 +28,7 @@ import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.DbJobManager;
+import it.eng.anas.db.DbJobManagerTransactional;
 import it.eng.anas.db.ResultSetToJson;
 import it.eng.anas.db.SimpleDbOp;
 import it.eng.anas.etl.AnasEtlJob;
@@ -124,6 +126,21 @@ public class WebServer {
 			return Utils.getMapper().writeValueAsString(ret);
 		});
 
+		spark.Spark.get("/getdir2", (req, res) -> {
+			try {
+				String path = req.queryParams("path");
+				if (path==null)
+					path="/";
+				String ret[][] = getDir2(path);
+				return Utils.getMapper().writeValueAsString(ret);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Log.log(e);
+				throw e;
+			}
+		});
+
 		spark.Spark.get("/getfile", (req, res) -> {
 			String path = req.queryParams("path");
 			if (path==null)
@@ -215,6 +232,41 @@ public class WebServer {
     	return ret;
     }
 
+    
+    private String [][] getDir2(String path) throws Exception {
+    	List<String> f = new ArrayList<>();
+    	List<String> d = new ArrayList<>();
+    	String base = Utils.getConfig().outputBasePath;
+    	File baseFile = new File(base);
+    	File dir = new File(base, path);
+    	if (!dir.exists() || !dir.isDirectory())
+    		throw new Exception ("dir "+dir.getAbsolutePath()+" does not exist");
+    	File files[] = dir.listFiles(); 
+    	for(File el: files) {
+    		if (el.exists() && el.isDirectory())
+    			d.add(el.getName()); 
+    		if (el.exists() && !el.isDirectory())
+    			f.add(getFileTitle(el));
+    	}
+    	String darr[] = d.toArray(new String[0]);
+    	String farr[] = f.toArray(new String[0]);
+    	String [][] ret = {darr, farr};
+    	return ret;
+    } 
+    
+    private String getFileTitle(File f) throws Exception {
+    	String name = f.getName();
+    	if (!name.endsWith(".json"))
+    		return name+":";
+    	JsonNode node = Utils.getMapper().readTree(f);
+    	if (node==null)
+    		return name+":";
+    	if (!(node instanceof ObjectNode))
+    		return name+":";
+    	JsonNode titolo = node.get("titolo");
+    	return (titolo==null) ? name+":" : name+":" + titolo.asText();
+    }
+
     private File getFile(String path) throws Exception {
     	String base = Utils.getConfig().outputBasePath;
     	File baseFile = new File(base);
@@ -223,6 +275,9 @@ public class WebServer {
     		throw new Exception("file "+path+" does not exists");
     	return ret;
     }
+
+    
+    
     private static ObjectMapper webSocketMapper = Utils.getMapper();
     static {
     	webSocketMapper = Utils.getMapper();

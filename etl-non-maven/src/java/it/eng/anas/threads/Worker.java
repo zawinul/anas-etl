@@ -30,8 +30,9 @@ public abstract class Worker extends Thread {
 			execute();
 		}
 		catch(Exception e) {
-			Log.log("ERRORE CHE FA USCIRE DAL WORKER");
 			e.printStackTrace();
+			Log.log("ERRORE CHE FA USCIRE DAL WORKER");
+			Log.log(e);
 			workerStatus = e.getMessage();
 		}
 

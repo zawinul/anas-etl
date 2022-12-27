@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.eng.anas.Event;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
+import it.eng.anas.db.DbJobManagerTransactional;
 import it.eng.anas.model.DBJob;
 import it.eng.anas.threads.Worker;
 

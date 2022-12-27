@@ -35,7 +35,7 @@ public class Main {
 	private void startJobs() {
 		manager = new ThreadManager();
 		ThreadManager.mainThreadManager = manager;
-		manager.setNumberOfThreads(1);		
+		manager.setNumberOfThreads(-1);		
 	}
 	
 	private void startWeb() {

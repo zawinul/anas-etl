@@ -22,6 +22,7 @@ import it.eng.anas.FilenetHelper;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
+import it.eng.anas.db.DbJobManager;
 import it.eng.anas.db.FilenetDBHelper;
 import it.eng.anas.db.ResultSetToJson;
 import it.eng.anas.db.SimpleDbOp;
@@ -38,7 +39,7 @@ public class JobProcessorArchivi {
 	
 	// CHILD_DELTA>0 => esplora in profondità 
 	// CHILD_DELTA<0 => esplora in ampiezza
-	public static int CHILD_DELTA = -1; 
+	public static int CHILD_DELTA = 1; 
 
 	public static int CONTENT_DELTA = 0;
 	
@@ -464,13 +465,14 @@ public class JobProcessorArchivi {
 			nchild++;
 		}
 		String savefile=null;
-		if (nchild==0 && !hasContent)  // foglia
+		if (nchild==0 && !hasContent)  {// foglia
 			savefile = job.dir+"/"+job.path;
-		else 
+			fileh.saveJsonObject("archivi2/"+savefile+".json", node);
+		}
+		else {
 			savefile = nextdir+"/"+job.path;
-		
-		fileh.saveJsonObject("archivi2/"+savefile+".json", node);
-		
+			fileh.saveJsonObject("archivi2/"+savefile+".json", node);
+		}
 		if (hasContent && job.withcontent) {
 			AnasEtlJob contentjob = AnasEtlJob.createSubJob(job);
 			contentjob.operation = "getArchiviContent2";
@@ -638,7 +640,10 @@ public class JobProcessorArchivi {
 			}
 		}
 		System.out.println("exiting");
+		sc.close();
 		Event.emit("exit");
 		Log.log("done!");
+	
 	}
+	
 }

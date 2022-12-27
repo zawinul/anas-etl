@@ -1,0 +1,40 @@
+* {
+	font-family: calibri;
+	font-size: 10pt;
+	color: #606060;
+}
+
+body {
+	background-color: #fafafa;
+}
+
+.box {
+	background-color: #ffffff;
+	border: 1px solid #e0e0e0;
+    padding: 10px;
+    margin-top: -1px;
+}
+
+.buttons {
+	overflow: hidden;
+}
+
+.buttons button {
+	float: left;
+	margin-right: 4px;
+}
+
+.dir {
+	margin:0 2px;
+	padding:0 6px;
+	background-color: #f0f0f0;
+	/* display: block;
+	float:left; */
+}
+
+.file {
+	margin:0;
+	padding:0;
+	display: block;
+	/* float:left; */
+}
