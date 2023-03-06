@@ -38,7 +38,7 @@ public class DBConnectionFactory {
 		Connection conn = DriverManager.getConnection(url, user, password);
 		map.put(conn, label);
 		nopen++;
-		Log.log("+ CONNESSIONI APERTE: "+nopen);
+		//Log.log("+ CONNESSIONI APERTE: "+nopen);
 		return conn;
 	}
 	
@@ -67,7 +67,7 @@ public class DBConnectionFactory {
 		}
 		finally {
 			nopen--;
-			Log.log("-CONNESSIONI APERTE: "+nopen);
+			//Log.log("-CONNESSIONI APERTE: "+nopen);
 			//showMap();
 		}
 	}

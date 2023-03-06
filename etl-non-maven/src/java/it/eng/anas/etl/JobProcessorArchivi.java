@@ -22,12 +22,14 @@ import it.eng.anas.FilenetHelper;
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
-import it.eng.anas.db.DbJobManager;
 import it.eng.anas.db.FilenetDBHelper;
 import it.eng.anas.db.ResultSetToJson;
 import it.eng.anas.db.SimpleDbOp;
 
 public class JobProcessorArchivi {
+	
+	final static boolean GET_CONTENT_WITH_NODE = true;
+	
 	public Connection fnconn;
 	public FilenetDBHelper db;
 	public FileHelper fileh = new FileHelper();
@@ -419,13 +421,13 @@ public class JobProcessorArchivi {
 		String id = job.docId;		
 		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
 		FilenetHelper fnet = caller.getFilenetHelper();
-		int level = job.path.split("\\.").length;
+		// int level = job.path.split("\\.").length;
 		ObjectNode node = fnet.getDocumentMetadata("PDMASD", id);
 		if (node==null)
 			throw new Exception("doc not found "+id);
 
 		int numero = node.get("numero").asInt();
-		String titolo = node.get("titolo").asText();
+		// String titolo = node.get("titolo").asText();
 		String	nextdir = job.dir+"/"+numero;
 		boolean hasContent = false;
 		JsonNode jsize = node.get("ContentSize");
@@ -449,7 +451,7 @@ public class JobProcessorArchivi {
 			String childId = row.getProperties().getIdValue("Id").toString();
 			Integer childNumero = row.getProperties().getInteger32Value("numero");
 			String childTitolo = row.getProperties().getStringValue("titolo").trim().toLowerCase();
-			int subprio = job.priority-1;
+			int subprio = job.priority+CHILD_DELTA;
 			String nextpath = job.path+"."+childNumero;
 			Log.log(nextpath+" "+childTitolo);
 			AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
@@ -473,14 +475,28 @@ public class JobProcessorArchivi {
 			savefile = nextdir+"/"+job.path;
 			fileh.saveJsonObject("archivi2/"+savefile+".json", node);
 		}
+		
 		if (hasContent && job.withcontent) {
-			AnasEtlJob contentjob = AnasEtlJob.createSubJob(job);
-			contentjob.operation = "getArchiviContent2";
-			contentjob.queue = "qcontent";
-			contentjob.priority = job.priority + CONTENT_DELTA;
-			contentjob.dir = savefile;
+			if (GET_CONTENT_WITH_NODE) {
+				List<FilenetHelper.ContentInfo> contents = fnet.getContentTransfer("PDMASD",  id, true);
+				for(int i=0;i<contents.size(); i++) {
+					FilenetHelper.ContentInfo content = contents.get(i);
+					//String filename = i+"."+content.filename;
+					String filepath = "archivi2/"+savefile+" "+content.filename;
+					Log.log("save "+filepath);
+					fileHelper.save(filepath, content.stream);	
+				}
+			}
+			else {
+				AnasEtlJob contentjob = AnasEtlJob.createSubJob(job);
+				contentjob.operation = "getArchiviContent2";
+				contentjob.queue = "qcontent";
+				contentjob.priority = job.priority + CONTENT_DELTA;
+				contentjob.dir = savefile;
+					
+				jobManager.insertNew(contentjob);
 				
-			jobManager.insertNew(contentjob);
+			}
 		}
 	}
 

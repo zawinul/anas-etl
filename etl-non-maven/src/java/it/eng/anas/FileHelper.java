@@ -85,6 +85,7 @@ public class FileHelper {
 			String parts[] = dirPath.split("/");
 			for(int i=0; i<parts.length; i++) {
 				File child = new File(curDir, parts[i]);
+				
 				if (!child.exists())
 					child.mkdir();
 				curDir = child;
@@ -97,6 +98,30 @@ public class FileHelper {
 		}
 	}
 
+
+	
+	public boolean dirExists(String dirPath)  {
+		try {
+			String curDirPath = Utils.getConfig().outputBasePath;
+			File curDir = new File(curDirPath);
+
+			if (!curDir.exists()) 
+				return false;
+			
+			String parts[] = dirPath.split("/");
+			for(int i=0; i<parts.length; i++) {
+				File child = new File(curDir, parts[i]);
+				
+				if (!child.exists())
+					return false;
+				curDir = child;
+			}
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
 	
 	public File getOutputDirFile(String filePath)  {
 		try {

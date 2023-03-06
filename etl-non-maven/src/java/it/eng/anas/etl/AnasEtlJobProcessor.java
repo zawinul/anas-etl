@@ -25,10 +25,14 @@ public class AnasEtlJobProcessor  {
 		dispatcher.put("getArchiviContent2", job->new JobProcessorArchivi(caller).getArchiviContent2(job));
 		dispatcher.put("getArchiviNode2", job->new JobProcessorArchivi(caller).getArchiviNode2ByApi(job));
 		dispatcher.put("startArchiviNode", job->new JobProcessorArchivi(caller).startArchiviNode(job));
+		
 		dispatcher.put("startScanDBS", job->new JobProcessorDBS(caller).startScanDBS_DB(job));
 		dispatcher.put("getDBSFolder", job->new JobProcessorDBS(caller).getDBSFolder_DB(job));
+//		dispatcher.put("getDBSFolder", job->new JobProcessorDBS(caller).getDBSFolder(job));
+//		dispatcher.put("getDBSDoc", job->new JobProcessorDBS(caller).getDBSDoc(job));
 		dispatcher.put("getDBSDoc", job->new JobProcessorDBS(caller).getDBSDoc_DB(job));
 		dispatcher.put("getDBSContent", job->new JobProcessorDBS(caller).getDBSContent(job));
+		dispatcher.put("startSingleDBS", job->new JobProcessorDBS(caller).startScanSingleDBS(job));
 	}
 	
 	

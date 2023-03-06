@@ -14,8 +14,11 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.eclipse.jetty.websocket.api.*;
-import org.eclipse.jetty.websocket.api.annotations.*;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
+import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +31,6 @@ import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DBConnectionFactory;
 import it.eng.anas.db.DbJobManager;
-import it.eng.anas.db.DbJobManagerTransactional;
 import it.eng.anas.db.ResultSetToJson;
 import it.eng.anas.db.SimpleDbOp;
 import it.eng.anas.etl.AnasEtlJob;
@@ -107,6 +109,7 @@ public class WebServer {
 			manager.close();
 			return Utils.getMapper().writeValueAsString(job);
 		});
+
 
 		spark.Spark.get("/jobs", (req, res) -> {
 			return new StatusReport().getJobs();
@@ -215,7 +218,6 @@ public class WebServer {
     	List<String> f = new ArrayList<>();
     	List<String> d = new ArrayList<>();
     	String base = Utils.getConfig().outputBasePath;
-    	File baseFile = new File(base);
     	File dir = new File(base, path);
     	if (!dir.exists() || !dir.isDirectory())
     		throw new Exception ("dir "+dir.getAbsolutePath()+" does not exist");
@@ -237,7 +239,6 @@ public class WebServer {
     	List<String> f = new ArrayList<>();
     	List<String> d = new ArrayList<>();
     	String base = Utils.getConfig().outputBasePath;
-    	File baseFile = new File(base);
     	File dir = new File(base, path);
     	if (!dir.exists() || !dir.isDirectory())
     		throw new Exception ("dir "+dir.getAbsolutePath()+" does not exist");
@@ -269,7 +270,6 @@ public class WebServer {
 
     private File getFile(String path) throws Exception {
     	String base = Utils.getConfig().outputBasePath;
-    	File baseFile = new File(base);
     	File ret = new File(base, path);
     	if (!ret.exists() || !ret.isFile())
     		throw new Exception("file "+path+" does not exists");

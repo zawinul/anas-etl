@@ -110,7 +110,7 @@ public class MainEstrazioneAlmawave {
 			String className = op2.getString("cname");
 			op2.close().throwOnError();
 				
-			ArrayNode arr = fdb.getDocProperties(os, id);
+			ObjectNode arr = fdb.getDocProperties(os, id);
 			JsonNode obj = arr.get(0);
 			String guid = FilenetDBHelper.dbid2guid(id);
 			String dest = path+"/"+className+"."+guid+".json";

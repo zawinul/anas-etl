@@ -329,7 +329,7 @@ public class OLD3_JobProcessorArchivi {
 			RepositoryRow row = (RepositoryRow) iter.next();
 			String childId = row.getProperties().getIdValue("Id").toString();
 			Integer childNumero = row.getProperties().getInteger32Value("numero");
-			String childTitolo = row.getProperties().getStringValue("titolo");
+			// String childTitolo = row.getProperties().getStringValue("titolo");
 			int subprio = job.priority;
 			if (level==2) {
 				if (!titolo.trim().toLowerCase().equals("nuove costruzioni"))

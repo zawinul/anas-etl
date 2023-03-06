@@ -248,7 +248,7 @@ function startScanArchivi2() {
 		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
 		error => alert(error)
 	);
-}
+}	
 
 
 function startScanArchiviNode() {
@@ -260,6 +260,7 @@ function startScanArchiviNode() {
 	if (priority===null || priority===undefined)
 		return;
 	var dir = path.substring(0, path.lastIndexOf("."));
+	dir = dir.replace(/\./g, "/");
 	let job = {
 		queue:'qdata',
 		operation: 'startArchiviNode',
@@ -268,6 +269,33 @@ function startScanArchiviNode() {
 		withcontent,
 		path,
 		buildDir: false
+	};
+
+	var msg = JSON.stringify(job, null, 4);
+	if (!confirm(msg))
+		return;
+
+	$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+		ok => alert(JSON.stringify(JSON.parse(ok), null, 2)),
+		error => alert(error)
+	);
+}
+
+function startSingleDBS() {
+	var path = prompt("path", "/dbs/progetti/MS.PZ.01.E.18.11");
+	if (!path)
+		return;
+	var priority = prompt("priority", "0");
+	if (priority===null || priority===undefined)
+		return;
+	let job = {
+		queue:'qdata',
+		operation: 'startSingleDBS',
+		priority:priority-0,
+		path,
+		buildDir: true,
+		withdoc: true,
+		withcontent: true
 	};
 
 	var msg = JSON.stringify(job, null, 4);
@@ -313,6 +341,75 @@ async function sql(query) {
 		ok => console.log(ok),
 		error => alert(error)
 	);
+}
+
+async function startElencoDBS() {
+	var x = prompt();
+	x=x.trim();
+	if (x.startsWith(','))
+		x = x.substring(1);
+	if (x.endsWith(','))
+		x = x.substring(0,x.length-1);
+	var arr = JSON.parse('['+x+']');
+	console.log(arr);
+	for(var i=0;i<arr.length;i++) {
+	
+		var path = arr[i];
+		var priority = -i*10;
+		let job = {
+			queue:'qdata',
+			operation: 'startSingleDBS',
+			priority,
+			path,
+			buildDir: true,
+			withdoc: true,
+			withcontent: true
+		};
+	
+	
+		$.post({url:'insertJob', data:JSON.stringify(job)}).promise().then(
+			ok => console.log(JSON.stringify(JSON.parse(ok), null, 2)),
+			error => alert(error)
+		);
+		await sleep(100);
+	}
+}
+
+
+async function startElencoDBSEsterno(prefix) {
+	var x = prompt();
+	x=x.trim();
+	if (x.startsWith(','))
+		x = x.substring(1);
+	if (x.endsWith(','))
+		x = x.substring(0,x.length-1);
+	var arr = JSON.parse('['+x+']');
+	console.log(arr);
+	for(var i=0;i<arr.length;i++) {
+	
+		var path = arr[i];
+		var priority = -i*10;
+		let job = {
+			queue:'qdata',
+			operation: 'startSingleDBS',
+			priority,
+			path,
+			buildDir: true,
+			withdoc: true,
+			withcontent: true
+		};
+	
+	
+		$.post({url:prefix+'/insertJob', data:JSON.stringify(job)}).promise().then(
+			ok => console.log(JSON.stringify(JSON.parse(ok), null, 2)),
+			error => alert(error)
+		);
+		await sleep(200);
+	}
+}
+
+function sleep(ms) {
+	return new Promise(resolve=>setTimeout(resolve,ms));
 }
 
 

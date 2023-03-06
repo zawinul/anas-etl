@@ -21,6 +21,7 @@ public class Config extends Model {
 	public int shortPause[] = {100, 200};
 	public int longPause[] = {10000, 30000};
 	public int nMaxRetry = 10;
+	public String snapshotDate = "20221201";
 	public boolean simulazioneErrori = false;
 	public HashMap<String, Integer> schedule = new HashMap<String, Integer>();
 	public boolean websocketEnabled= false;

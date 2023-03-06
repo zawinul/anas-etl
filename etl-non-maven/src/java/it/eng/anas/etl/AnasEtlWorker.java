@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.eng.anas.FilenetHelper;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
-import it.eng.anas.db.DbJobManagerTransactional;
 import it.eng.anas.db.FilenetDBHelper;
 
 public class AnasEtlWorker extends DBConsumeWorker<AnasEtlJob>  {

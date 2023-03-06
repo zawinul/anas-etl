@@ -3,11 +3,17 @@ package it.eng.anas.db;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import it.eng.anas.FilenetHelper;
+import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.model.Config;
 
@@ -98,13 +104,22 @@ public class FilenetDBHelper {
 		public void onDoc(String docId) throws Exception;
 	}
 	
+	public static class Version {
+		public String id;
+		public String vid;
+		public long created;
+	}
 	public void getContainedDocumentsId(String os, String folderId, DocIdListener listener) throws Exception {
 		if (folderId.startsWith("{"))
 			folderId = guid2dbid(folderId);
-		//String getDocQuery = "select d.object_id from docversion d where d.object_id in "+ 
-		//		" (select head_id from relationship  where tail_id=? and object_class_id=?)";
-		String getDocQuery = "select d.object_id from docversion d where d.retrieval_names is not null and d.object_id in "+ 
+
+		String getDocQuery = "select d.object_id, d.version_series_id, d.create_date " +
+				"from docversion d where d.retrieval_names is not null and d.object_id in "+ 
 				" (select head_id from relationship  where tail_id=? and object_class_id=?) order by d.content_size desc";
+		
+		String  t0s = Utils.getConfig().snapshotDate;
+		long t0 = Utils.string2Date(t0s).getTime();
+		
 		setOs(os);
 		SimpleDbOp op = new SimpleDbOp(getConnection())
 			.query(getDocQuery)
@@ -112,11 +127,46 @@ public class FilenetDBHelper {
 			.setString(2, getFolderRelationshipId(os))
 			.executeQuery()
 			.throwOnError();
-		
-		while(op.next())
-			listener.onDoc(dbid2guid(op.getString("object_id")));
-		
+
+		Map<String, ArrayList<Version>> map = new HashMap<>();
+		while(op.next()) {
+			Version v = new Version();
+			v.id = op.getString("object_id");
+			v.vid = op.getString("version_series_id");
+			v.created = op.getDate("create_date").getTime();
+			if (v.created>t0) {
+				Log.log("versione "+dbid2guid(v.id) +" creata in data "+new Date(v.created)+" : scartata");
+				continue;
+			}
+			if (!map.containsKey(v.vid))
+				map.put(v.vid,  new ArrayList<Version>());
+			map.get(v.vid).add(v);
+		}
 		op.close().throwOnError();
+		
+		if (map.isEmpty())
+			return;
+		
+		for (String vid: map.keySet()) {
+			ArrayList<Version> versions = map.get(vid);
+
+			// poichè le versioni troppo recenti le ho già scartate la più recente tra quelle rimaste è quella che mi interessa
+
+			Version selected = versions.get(0);
+			if (versions.size()>=2) {
+				Log.log("caso da debug vid="+vid+" n="+versions.size());
+				for(int i=1;i<versions.size();i++) {
+					Version candidate = versions.get(i);
+					if (candidate.created>selected.created) {
+						Log.log(Utils.time2String(selected.created)+" rimpiazzato da "+Utils.time2String(candidate.created));
+						selected = candidate;
+					}
+				}		
+				Log.log("selected="+Utils.time2String(selected.created));
+			}
+
+			listener.onDoc(selected.id);
+		}
 	}
 	
 	public static String guid2dbid(String guid) {
@@ -209,7 +259,7 @@ public class FilenetDBHelper {
 	}
 
 	
-	public ArrayNode getDocProperties(String os, String id) throws Exception {
+	public ObjectNode getDocProperties(String os, String id) throws Exception {
 		setOs(os);
 		if (id.startsWith("{"))
 			id = guid2dbid(id);
@@ -225,10 +275,10 @@ public class FilenetDBHelper {
 		ResultSet rs = op.getResultSet();
 		ResultSetToJson r = new ResultSetToJson();
 		an = r.extractWithTypes(rs, map);
-		
+		ObjectNode obj = (ObjectNode) an.get(0);
 		op.close().throwOnError();
 
-		return an;
+		return obj;
 
 	}
 

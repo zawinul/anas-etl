@@ -106,6 +106,14 @@ public class Utils {
 			return dateFormat.format(d);
 	}
 
+
+	public static String time2String(Long l) {
+		if (l==null)
+			return "null";
+		else
+			return dateFormat.format(new Date(l.longValue()));
+	}
+
 	public static Date string2Date(String s) {
 		if (s==null)
 			return null;

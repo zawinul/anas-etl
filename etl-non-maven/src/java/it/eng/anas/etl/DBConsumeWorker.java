@@ -3,9 +3,9 @@ package it.eng.anas.etl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.eng.anas.Event;
+import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
-import it.eng.anas.db.DbJobManagerTransactional;
 import it.eng.anas.model.DBJob;
 import it.eng.anas.threads.Worker;
 
@@ -82,6 +82,7 @@ public class DBConsumeWorker<T extends DBJob> extends Worker {
 		} 
 		catch (Exception e) {
 			log("error on receive BL: "+e.getMessage());
+			Log.log(e);
 			jobManager.nack(job, Utils.getStackTrace(e));
 			workerStatus = "job "+job.id+" "+e.getMessage();
 			Event.emit("worker-changed", this);

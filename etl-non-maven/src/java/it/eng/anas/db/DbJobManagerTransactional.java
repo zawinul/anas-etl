@@ -7,9 +7,7 @@ import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import it.eng.anas.Log;
 import it.eng.anas.Utils;
-import it.eng.anas.etl.AnasEtlJob;
 import it.eng.anas.model.DBJob;
 
 public class DbJobManagerTransactional<T extends DBJob>  {
@@ -115,12 +113,12 @@ public class DbJobManagerTransactional<T extends DBJob>  {
 		job.last_change = time;
 		job.locktag = null;
 		
-		insert(job, "job");
+		insert(job, "job", null);
 		
 		return job;
 	}
 	
-	private void insert(T job, String table) throws Exception {
+	private void insert(T job, String table, String output) throws Exception {
 		String insertSql = "insert into "
 				+ table
 				+ " (jobid,priority,locktag,nretry,queue,operation,key1,key2,key3,creation,last_change,parent_job,duration,body,output) "
@@ -143,7 +141,7 @@ public class DbJobManagerTransactional<T extends DBJob>  {
 			.setString(12, job.parent_job)
 			.setInt(13, job.duration)
 			.setString(14, mapper.writeValueAsString(job))
-			.setString(15, limit(job.output, 500))
+			.setString(15, limit(output, 500))
 			.execute()
 			.close()
 			.throwOnError();		
@@ -209,14 +207,13 @@ public class DbJobManagerTransactional<T extends DBJob>  {
 	}
 
 	private T _ack(T job, String out)  throws Exception  {
-		job.output = out;
 		updateTiming(job);
 		//insert(job, "job_done");
 		String sql = "update job set locktag=?, output=?, last_change=?, duration=?  where jobid=?";
 		new SimpleDbOp(connection)
 			.query(sql)
 			.setString(1, "ack")
-			.setString(2, job.output)
+			.setString(2, limit(out, 500))
 			.setString(3, job.last_change)
 			.setInt(4, job.duration)
 			.setString(5, job.id)
@@ -224,7 +221,6 @@ public class DbJobManagerTransactional<T extends DBJob>  {
 		return job;
 	}
 	private T _nack(T job, String out)  throws Exception {
-		job.output = out;
 		updateTiming(job);
 		job.nretry++;
 		job.last_change = Utils.date2String(new Date());
@@ -235,7 +231,7 @@ public class DbJobManagerTransactional<T extends DBJob>  {
 				.setString(1, job.last_change)
 				.setInt(2, job.nretry)
 				.setString(3, limit(mapper.writeValueAsString(job), 2000))
-				.setString(4, limit(job.output, 500))
+				.setString(4, limit(out, 500))
 				.setString(5, job.id)
 				.executeUpdate()
 				.close()
@@ -247,7 +243,7 @@ public class DbJobManagerTransactional<T extends DBJob>  {
 			new SimpleDbOp(connection)
 				.query(sql)
 				.setString(1, "nack")
-				.setString(2, limit(job.output, 500))
+				.setString(2, limit(out, 500))
 				.setString(3, job.last_change)
 				.setInt(4, job.duration)
 				.setString(5, job.id)
@@ -272,7 +268,7 @@ public class DbJobManagerTransactional<T extends DBJob>  {
 		connection = null;
 	}
 	
-	private String limit(String x, int maxlen) {
+	private static String limit(String x, int maxlen) {
 		if (x==null)
 			return null;
 		else if (x.length()>maxlen)

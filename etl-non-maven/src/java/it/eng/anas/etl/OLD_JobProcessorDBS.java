@@ -8,15 +8,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import it.eng.anas.FileHelper;
 import it.eng.anas.FilenetHelper;
-import it.eng.anas.Log;
 import it.eng.anas.Utils;
 import it.eng.anas.db.DbJobManager;
 import it.eng.anas.db.FilenetDBHelper;
 
-public class JobProcessorDBS {
+public class OLD_JobProcessorDBS {
 	private AnasEtlWorker caller;
 	private FileHelper fileHelper = new FileHelper();
-	public JobProcessorDBS(AnasEtlWorker caller) {
+	public OLD_JobProcessorDBS(AnasEtlWorker caller) {
 		this.caller = caller;
 	}
 	
@@ -82,26 +81,6 @@ public class JobProcessorDBS {
 //		}
 //	}
 
-	
-
-	public void startScanSingleDBS(AnasEtlJob job) throws Exception {
-		FilenetHelper fn = caller.getFilenetHelper();
-		String id = fn.getFolderId("PDM", job.path);
-		Log.log(id);
-		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
-		
-		String pathSegments[] = job.path.split("/");
-		AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
-		subjob.operation = "getDBSFolder";
-		subjob.folderId = id;
-		subjob.path = job.path;
-		subjob.key1 = pathSegments[2];
-		subjob.key2 = pathSegments[3];
-		subjob.key3 = job.path;
-		subjob.priority = job.priority;
-		subjob.os = "PDM";
-		jobManager.insertNew(subjob);
-	}
 
 
 	public void startScanDBS_DB(AnasEtlJob job) throws Exception {
@@ -153,7 +132,7 @@ public class JobProcessorDBS {
 
 			AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
 			subjob.operation = "getDBSContent";
-			subjob.priority = job.priority;
+			subjob.priority = job.priority-10;
 
 			jobManager.insertNew(subjob);
 		}
@@ -169,28 +148,15 @@ public class JobProcessorDBS {
 			fileHelper.saveJsonObject(p, node);
 		
 		
-//		if (job.withcontent) {
-//			DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
-//			
-//			AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
-//			subjob.operation = "getDBSContent";
-//			subjob.priority = job.priority-10;
-//
-//			jobManager.insertNew(subjob);
-//		}
-		
-		if (true) {
-			FilenetHelper fnet = caller.getFilenetHelper();
-			String guid = FilenetDBHelper.dbid2guid(job.docId);
-			List<FilenetHelper.ContentInfo> contents = fnet.getContentTransfer(job.os, guid, true);
-			for(int i=0;i<contents.size(); i++) {
-				FilenetHelper.ContentInfo content = contents.get(i);
-				String filename = i+"."+content.filename;
-				String filepath = contentPath(what, job.docId, job.path, filename);
-				fileHelper.save(filepath, content.stream);	
-			}
-		}
+		if (job.withcontent) {
+			DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
+			
+			AnasEtlJob subjob = AnasEtlJob.createSubJob(job);
+			subjob.operation = "getDBSContent";
+			subjob.priority = job.priority-10;
 
+			jobManager.insertNew(subjob);
+		}
 	}
 
 	public void getDBSContent(AnasEtlJob job) throws Exception {
@@ -205,48 +171,44 @@ public class JobProcessorDBS {
 		}
 	}
 	
-	public void getDBSFolder(AnasEtlJob job) throws Exception {
-		FilenetHelper fnet = caller.getFilenetHelper();
-		FilenetHelper.FolderInfo node;
-		String what = job.key1.toLowerCase();
-		String dbs = job.key2;
-		ObjectNode metadata = fnet.getFolderMetadataById("PDM", job.folderId, false);
-		
-		node = fnet.traverseFolder("PDM", job.folderId, true, job.withdoc);
-		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
-		String dir = folderPath(what, job.path);
-		fileHelper.saveJsonObject(dir+"/folder-metadata.json", metadata);
-		for(int i=0; i<node.children.size(); i++) {
-			FilenetHelper.SubFolderInfo sub = node.children.get(i);
-			AnasEtlJob j = AnasEtlJob.createSubJob(job);
-			j.operation = "getDBSFolder";
-			j.folderId = sub.id;
-			j.path = sub.path;
-			j.key1 = what;
-			j.key2 = dbs;
-			j.key3 = sub.path;
-			j.priority = job.priority+1;
-			
-			jobManager.insertNew(j);
-
-			if (job.buildDir) {
-				fileHelper.getDir(folderPath(what, sub.path));
-			}
-		}
-		if (job.withdoc) {
-			for(String docId: node.docs) {
-				AnasEtlJob j = AnasEtlJob.createSubJob(job);
-				j.operation = "getDBSDoc";
-				j.docId = docId;
-				j.path = job.path;
-				j.key1 = what;
-				j.key2 = dbs;
-				j.key3 = docId;
-				j.priority = job.priority-50;
-				jobManager.insertNew(j);
-			}
-		}
-	}
+//	public void getDBSFolder(AnasEtlJob job) throws Exception {
+//		FilenetHelper fnet = caller.getFilenetHelper();
+//		FilenetHelper.FolderInfo node;
+//		String what = job.key1.toLowerCase();
+//		String dbs = job.key2;
+//		node = fnet.traverseFolder("PDM", job.folderId, true, job.withdoc);
+//		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
+//		
+//		for(int i=0; i<node.children.size(); i++) {
+//			FilenetHelper.SubFolderInfo sub = node.children.get(i);
+//			AnasEtlJob j = AnasEtlJob.createSubJob(job);
+//			j.operation = "getDBSFolder";
+//			j.folderId = sub.id;
+//			j.path = sub.path;
+//			j.key1 = what;
+//			j.key2 = dbs;
+//			j.key3 = sub.path;
+//			j.priority = job.priority;
+//			
+//			jobManager.insertNew(j);
+//
+//			if (job.buildDir)
+//				fileHelper.getDir(folderPath(what, sub.path));
+//		}
+//		if (job.withdoc) {
+//			for(String docId: node.docs) {
+//				AnasEtlJob j = AnasEtlJob.createSubJob(job);
+//				j.operation = "getDBSDoc";
+//				j.docId = docId;
+//				j.path = job.path;
+//				j.key1 = what;
+//				j.key2 = dbs;
+//				j.key3 = docId;
+//				j.priority = job.priority-50;
+//				jobManager.insertNew(j);
+//			}
+//		}
+//	}
 
 
 	public void getDBSFolder_DB(AnasEtlJob job) throws Exception {
@@ -257,12 +219,6 @@ public class JobProcessorDBS {
 		if (id.startsWith("{"))
 			id = FilenetDBHelper.guid2dbid(id);
 
-//		boolean exists = 	fileHelper.dirExists(folderPath(what, job.path));
-//		if (exists) {
-//			this.caller.workerStatus = "path "+job.path+" esistente";
-//			Log.log("il folder "+job.path+" e' gia' esistente");
-//			return;
-//		}
 		//List<String[]> subfolders = db.getSubFolders("PDM", id, job.path);
 		DbJobManager<AnasEtlJob> jobManager = caller.getJobManager();
 
@@ -270,14 +226,6 @@ public class JobProcessorDBS {
 			
 			@Override
 			public void onFolder(String subid, String subpath) throws Exception {
-				String fpath = folderPath(what, subpath);
-				boolean exists = 	fileHelper.dirExists(fpath);
-				if (exists) {
-					Log.log("il folder "+fpath+" e' gia' esistente");
-					return;
-				}
-
-				
 				AnasEtlJob j = AnasEtlJob.createSubJob(job);
 				j.operation = "getDBSFolder";
 				j.folderId = subid;
@@ -290,7 +238,7 @@ public class JobProcessorDBS {
 				jobManager.insertNew(j);
 
 				if (job.buildDir)
-					fileHelper.getDir(fpath);
+					fileHelper.getDir(folderPath(what, subpath));
 
 			}
 		});
@@ -316,19 +264,24 @@ public class JobProcessorDBS {
 
 	
 	public String folderPath(String what, String path) {
+//		if (path.startsWith("/"))
+//			path = path.substring(1);
+//		if (path.startsWith("dbs/"))
+//			path = path.substring(4);
+//		return what+"/"+path;
 		return path;
 	}
 
 	public String[] docPath(String what, String id, String path) {
 		String fpath = folderPath(what, path);
 		return new String[] {
-			fpath+"/"+id+".json"
+			fpath+"/"+id+".json",
+			what+"/_documents_/"+id.substring(34,37)+"/"+id+".json"
 		};
 	}
 
 	public String contentPath(String what, String id, String path, String filename) {
-		String fpath = folderPath(what, path);
-		return fpath+"/"+id+"."+filename;
+		return what+"/_documents_/"+id.substring(34,37)+"/"+id+"."+filename;
 	}
 
 

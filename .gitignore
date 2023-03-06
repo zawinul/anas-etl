@@ -3,6 +3,10 @@ runnable.jar
 JavaCEWSClient/*
 execute/*
 log/*
+*.log
+**/password.*
+skel/*
+skel
 
 .metadata
 *.iml

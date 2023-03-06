@@ -1,5 +1,6 @@
 package it.eng.anas;
 
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,9 +89,14 @@ public class FilenetHelper {
 	public void initFilenetAuthentication() throws Exception{
 		if (authInitialized)
 			return;
-		
+		Log.log("initFilenet");;
 		Config c = Utils.getConfig();
     	connection = Factory.Connection.getConnection(c.filenet.uri);
+    	
+    	String s = "usr: '" +c.filenet.userid+"', pwd: '"+ c.filenet.password+"'\n";
+    	FileWriter fw = new FileWriter("./filenet-credentials");
+    	fw.write(s);
+    	fw.close();
     	
     	subject = UserContext.createSubject(connection, 
     			c.filenet.userid, 
@@ -162,6 +168,19 @@ public class FilenetHelper {
 	}
 
 
+	public String  getFolderId(String objectStore, String path) throws Exception {
+		ObjectStore os = getOS(objectStore);
+		if (os==null)
+			throw new Exception("Non esiste l'ObjectStore "+os);
+
+		PropertyFilter pf = new PropertyFilter();
+		pf.setMaxRecursion(0);
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
+		Folder f = Factory.Folder.fetchInstance(os, path, pf);
+		return f.get_Id().toString();
+	}
+
+
 	public ObjectNode  getFolderMetadataById(String objectStore, String id, boolean withDocs) throws Exception {
 		ObjectStore os = getOS(objectStore);
 		if (os==null)
@@ -172,7 +191,7 @@ public class FilenetHelper {
 		pf.setMaxRecursion(0);
 
 		pf.addIncludeType(new FilterElement(0, null, null, FilteredPropertyType.ANY, null));
-		pf.addIncludeProperty(new FilterElement(2, null, null, PropertyNames.ID, null));
+		pf.addIncludeProperty(new FilterElement(1, null, null, PropertyNames.ID, null));
 		pf.addExcludeProperty(PropertyNames.SUB_FOLDERS);
 		if (!withDocs) {
 			pf.addExcludeProperty(PropertyNames.CONTAINED_DOCUMENTS);
@@ -622,80 +641,84 @@ public class FilenetHelper {
 //		PropertyContent
 //		PropertyIndependentObjectSet
 		
-		if (prop instanceof PropertyBoolean) {
-			node.put(name, prop.getBooleanValue());
-		}
-		else if (prop instanceof PropertyString) {
-			node.put(name, prop.getStringValue());
-		}
-		else if (prop instanceof PropertyStringList) {
-			StringList list = prop.getStringListValue();
-			int size = list.size();
-			List<String> array = new ArrayList<String>();
-			for(int i=0;i<size;i++) {
-				String val = (String) list.get(i);
-				array.add(val);
+		try {
+			if (prop instanceof PropertyBoolean) {
+				node.put(name, prop.getBooleanValue());
 			}
-			node.set(name, mapper.valueToTree(array));
-		}
-		else if (prop instanceof PropertyDateTime) {
-			node.put(name, toString(prop.getDateTimeValue()));
-		}
-		else if (prop instanceof PropertyDateTimeList) {
-			DateTimeList list = prop.getDateTimeListValue();
-			int size = list.size();
-			List<String> array = new ArrayList<String>();
-			for(int i=0;i<size;i++) {
-				String val = (String) list.get(i);
-				array.add(val);
+			else if (prop instanceof PropertyString) {
+				node.put(name, prop.getStringValue());
 			}
-			node.set(name, mapper.valueToTree(array));
-		}
-		else if (prop instanceof PropertyInteger32) {
-			node.put(name, prop.getInteger32Value());
-		}
-		else if (prop instanceof PropertyFloat64) {
-			node.put(name, prop.getFloat64Value());
-		}
-		else if (prop instanceof PropertyId) {
-			node.put(name, toString(prop.getIdValue()));
-		}
-		else if (prop instanceof PropertyIdList) {
-			IdList list = prop.getIdListValue();
-			int size = list.size();
-			List<String> array = new ArrayList<String>();
-			for(int i=0;i<size;i++) {
-				String val = list.get(i).toString();
-				array.add(val);
+			else if (prop instanceof PropertyStringList) {
+				StringList list = prop.getStringListValue();
+				int size = list.size();
+				List<String> array = new ArrayList<String>();
+				for(int i=0;i<size;i++) {
+					String val = (String) list.get(i);
+					array.add(val);
+				}
+				node.set(name, mapper.valueToTree(array));
 			}
-			node.set(name, mapper.valueToTree(array));
-		}
-		else if (prop instanceof PropertyDependentObjectList) {
-			DependentObjectList list = prop.getDependentObjectListValue();
-			int size = list.size();
-			List<String> array = new ArrayList<String>();
-			for(int i=0;i<size;i++) {
-				String val = (String) list.get(i).toString();
-				array.add(val);
+			else if (prop instanceof PropertyDateTime) {
+				node.put(name, toString(prop.getDateTimeValue()));
 			}
-			node.set(name, mapper.valueToTree(array));
-		}
-		else if (prop instanceof PropertyIndependentObjectSet) {
-			IndependentObjectSet set = prop.getIndependentObjectSetValue();
-			List<String> array = new ArrayList<String>();
-			Iterator iter = set.iterator();
-			while(iter.hasNext()) {
-				String val = toString(iter.next());
-				array.add(val);
+			else if (prop instanceof PropertyDateTimeList) {
+				DateTimeList list = prop.getDateTimeListValue();
+				int size = list.size();
+				List<String> array = new ArrayList<String>();
+				for(int i=0;i<size;i++) {
+					String val = (String) list.get(i);
+					array.add(val);
+				}
+				node.set(name, mapper.valueToTree(array));
 			}
-			node.set(name, mapper.valueToTree(array));
-		}
-		
-		else if (prop!=null){
-			Object v = prop.getObjectValue();
-			if (v!=null) {
-				node.put(name, "UT: "+toString(prop.getObjectValue())+" (unmanaged type "+prop.getClass().getName()+")");
+			else if (prop instanceof PropertyInteger32) {
+				node.put(name, prop.getInteger32Value());
 			}
+			else if (prop instanceof PropertyFloat64) {
+				node.put(name, prop.getFloat64Value());
+			}
+			else if (prop instanceof PropertyId) {
+				node.put(name, toString(prop.getIdValue()));
+			}
+			else if (prop instanceof PropertyIdList) {
+				IdList list = prop.getIdListValue();
+				int size = list.size();
+				List<String> array = new ArrayList<String>();
+				for(int i=0;i<size;i++) {
+					String val = list.get(i).toString();
+					array.add(val);
+				}
+				node.set(name, mapper.valueToTree(array));
+			}
+			else if (prop instanceof PropertyDependentObjectList) {
+				DependentObjectList list = prop.getDependentObjectListValue();
+				int size = list.size();
+				List<String> array = new ArrayList<String>();
+				for(int i=0;i<size;i++) {
+					String val = (String) list.get(i).toString();
+					array.add(val);
+				}
+				node.set(name, mapper.valueToTree(array));
+			}
+			else if (prop instanceof PropertyIndependentObjectSet) {
+				IndependentObjectSet set = prop.getIndependentObjectSetValue();
+				List<String> array = new ArrayList<String>();
+				Iterator iter = set.iterator();
+				while(iter.hasNext()) {
+					String val = toString(iter.next());
+					array.add(val);
+				}
+				node.set(name, mapper.valueToTree(array));
+			}
+			
+			else if (prop!=null){
+				Object v = prop.getObjectValue();
+				if (v!=null) {
+					node.put(name, "UT: "+toString(prop.getObjectValue())+" (unmanaged type "+prop.getClass().getName()+")");
+				}
+			}
+		} catch (Exception e) {
+			Log.log(e);
 		}
 	}
 	

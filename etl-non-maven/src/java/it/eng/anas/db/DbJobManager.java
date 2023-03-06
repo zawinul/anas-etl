@@ -1,17 +1,13 @@
 package it.eng.anas.db;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Date;
-import java.util.concurrent.Callable;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import it.eng.anas.Log;
 import it.eng.anas.Utils;
-import it.eng.anas.etl.AnasEtlJob;
 import it.eng.anas.model.DBJob;
 
 public class DbJobManager<T extends DBJob>  {
@@ -75,12 +71,12 @@ public class DbJobManager<T extends DBJob>  {
 		job.last_change = time;
 		job.locktag = null;
 		
-		insert(job, "job");
+		insert(job, "job", null);
 		
 		return job;
 	}
 	
-	private void insert(T job, String table) throws Exception {
+	private void insert(T job, String table, String output) throws Exception {
 		String insertSql = "insert into "
 				+ table
 				+ " (jobid,priority,locktag,nretry,queue,operation,key1,key2,key3,creation,last_change,parent_job,duration,body,output) "
@@ -106,7 +102,7 @@ public class DbJobManager<T extends DBJob>  {
 			.setString(12, job.parent_job)
 			.setInt(13, job.duration)
 			.setString(14, mapper.writeValueAsString(clone))
-			.setString(15, limit(job.output, 500))
+			.setString(15, limit(output, 450))
 			.execute()
 			.close()
 			.throwOnError();		
@@ -231,14 +227,13 @@ public class DbJobManager<T extends DBJob>  {
 				.execute().close().throwOnError();
 			return job;
 		}
-		job.output = out;
 		updateTiming(job);
 		//insert(job, "job_done");
 		String sql = "update job set locktag=?, output=?, last_change=?, duration=?  where jobid=?";
 		new SimpleDbOp(connection)
 			.query(sql)
 			.setString(1, "ack")
-			.setString(2, job.output)
+			.setString(2, limit(out, 500))
 			.setString(3, job.last_change)
 			.setInt(4, job.duration)
 			.setString(5, job.id)
@@ -246,20 +241,17 @@ public class DbJobManager<T extends DBJob>  {
 		return job;
 	}
 	private T _nack(T job, String out)  throws Exception {
-		job.output = out;
 		updateTiming(job);
 		job.nretry++;
 		job.last_change = Utils.date2String(new Date());
 		if (job.nretry<Utils.getConfig().nMaxRetry) {
 			// reinoltro in coda togliendo il lock e incrementando il n.retry
-			String output = job.output;
-			job.output = null;
 			new SimpleDbOp(connection)
 				.query("UPDATE job SET locktag=null, last_change=?, nretry=?, body=?, output=? WHERE jobid=?")
 				.setString(1, job.last_change)
 				.setInt(2, job.nretry)
 				.setString(3, limit(mapper.writeValueAsString(job), 2000))
-				.setString(4, output)
+				.setString(4, limit(out, 450))
 				.setString(5, job.id)
 				.executeUpdate()
 				.close()
@@ -271,7 +263,7 @@ public class DbJobManager<T extends DBJob>  {
 			new SimpleDbOp(connection)
 				.query(sql)
 				.setString(1, "nack")
-				.setString(2, limit(job.output, 500))
+				.setString(2, limit(out, 450))
 				.setString(3, job.last_change)
 				.setInt(4, job.duration)
 				.setString(5, job.id)

@@ -1,8 +1,6 @@
 package it.eng.anas.model;
 
 
-
-
 public class DBJob extends Model {	
 	public String id;
 	public Integer priority;
@@ -21,8 +19,6 @@ public class DBJob extends Model {
 	public String parent_job;
 	public int duration;
 	public String dir;
-	
-	public String output;
 	
 
 	public DBJob() {}
